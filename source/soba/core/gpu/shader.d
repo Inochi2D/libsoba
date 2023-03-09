@@ -11,15 +11,17 @@ import soba.core.gpu;
 import bindbc.wgpu;
 import std.string;
 
-class SbShader {
+class SbGFXShader {
 private:
     WGPUShaderModuleDescriptor desc;
     WGPUShaderModule mod;
-    this() { }
 
-package(soba.core.gpu):
-    static SbShader createSPIRV(SbGPUContext ctx, ubyte[] code, string name=null) {
-        SbShader shader = new SbShader;
+    // SbDynamicBuffer uniforms;
+    this() { }
+    
+public:
+    static SbGFXShader createSPIRV(SbGFXContext ctx, ubyte[] code, string name=null) {
+        SbGFXShader shader = new SbGFXShader;
 
         // Lang Descriptor
         WGPUShaderModuleSPIRVDescriptor shaderDesc;
@@ -34,11 +36,12 @@ package(soba.core.gpu):
 
         shader.mod = wgpuDeviceCreateShaderModule(ctx.getDevice(), &desc);
         shader.desc = desc;
+        // shader.uniforms = SbDynamicBuffer.createUniform(ctx, 0, "Uniforms");
         return shader;
     }
 
-    static SbShader createWGSL(SbGPUContext ctx, string source, string name=null) {
-        SbShader shader = new SbShader;
+    static SbGFXShader createWGSL(SbGFXContext ctx, string source, string name=null) {
+        SbGFXShader shader = new SbGFXShader;
         
         // Lang Descriptor
         WGPUShaderModuleWGSLDescriptor shaderDesc;
@@ -52,10 +55,9 @@ package(soba.core.gpu):
 
         shader.mod = wgpuDeviceCreateShaderModule(ctx.getDevice(), &desc);
         shader.desc = desc;
+        // shader.uniforms = SbDynamicBuffer.createUniform(ctx, 0, "Uniforms");
         return shader;
     }
-
-public:
 
     /// Destructor
     ~this() {

@@ -11,6 +11,8 @@ import bindbc.sdl;
 import bindbc.wgpu;
 import std.exception;
 
+public import soba.core;
+
 /**
     Initialize Soba
 
@@ -21,8 +23,10 @@ import std.exception;
 void sbInit() {
     auto sdlSupport = loadSDL();
     enforce(sdlSupport != SDLSupport.noLibrary, "SDL2 was not found!");
-    enforce(sdlSupport >= SDLSupport.v2_0_20, "SDL2 is too old, 2.0.20 or newer is expected!");
+    enforce(sdlSupport >= SDLSupport.sdl2014, "SDL2 is too old, 2.0.20 or newer is expected!");
 
     auto wgpuSupport = loadWGPU();
     enforce(wgpuSupport != WGPUSupport.noLibrary, "WGPU was not found!");
+
+    SDL_Init(SDL_INIT_EVERYTHING);
 }

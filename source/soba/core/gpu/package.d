@@ -9,6 +9,8 @@
 module soba.core.gpu;
 public import soba.core.gpu.buffer;
 public import soba.core.gpu.shader;
+public import soba.core.gpu.surface;
+public import soba.core.gpu.encoder;
 
 import bindbc.wgpu;
 import std.exception;
@@ -18,18 +20,16 @@ import soba.core.gpu.surface;
 private {
     extern(C)
     void sbGPUCtxAdapterCallback(WGPURequestAdapterStatus status, WGPUAdapter adapter, const(char)* message, void* userdata) {
-        enforce(status == WGPURequestAdapterStatus.Success, message.text);
         *cast(WGPUAdapter*)userdata = adapter;
     }
 
     extern(C)
     void sbGPUCtxDeviceCallback(WGPURequestDeviceStatus status, WGPUDevice device, const(char)* message, void* userdata) {
-        enforce(status == WGPURequestDeviceStatus.Success, message.text);
         *cast(WGPUDevice*)userdata = device;
     }
 }
 
-class SbGPUContext {
+class SbGFXContext {
 private:
     WGPUInstance instance;
     WGPUAdapter adapter;
@@ -52,15 +52,42 @@ private:
     
     WGPUDevice createDeviceForAdapter(WGPUAdapter adptr) {
         WGPUDevice dvc;
-        WGPURequiredLimits limits;
         WGPUDeviceDescriptor deviceDesc;
 
-        // 4096x4096 Texture atlasses needs to be supported AT LEAST
-        limits.limits.maxTextureDimension2D = 4096;
+        // WGPU limits list is pretty long...
+        WGPURequiredLimits limits;
+        limits.limits.maxTextureDimension1D = 2048;
+        limits.limits.maxTextureDimension2D = 2048;
+        limits.limits.maxTextureDimension3D = 256;
+        limits.limits.maxTextureArrayLayers = 256;
+        limits.limits.maxBindGroups = 4;
+        limits.limits.maxBindingsPerBindGroup = 640;
+        limits.limits.maxDynamicUniformBuffersPerPipelineLayout = 8;
+        limits.limits.maxDynamicStorageBuffersPerPipelineLayout = 4;
+        limits.limits.maxSampledTexturesPerShaderStage = 16;
+        limits.limits.maxSamplersPerShaderStage = 16;
+        limits.limits.maxStorageBuffersPerShaderStage = 4;
+        limits.limits.maxStorageTexturesPerShaderStage = 4;
+        limits.limits.maxUniformBuffersPerShaderStage = 12;
+        limits.limits.maxUniformBufferBindingSize = 16 << 10;
+        limits.limits.maxStorageBufferBindingSize = 128 << 20;
+        limits.limits.maxVertexBuffers = 8;
+        limits.limits.maxVertexAttributes = 16;
+        limits.limits.maxVertexBufferArrayStride = 2048;
+        limits.limits.minUniformBufferOffsetAlignment = 256;
+        limits.limits.minStorageBufferOffsetAlignment = 256;
+        limits.limits.maxInterStageShaderComponents = 60;
+        limits.limits.maxComputeWorkgroupStorageSize = 16352;
+        limits.limits.maxComputeInvocationsPerWorkgroup = 256;
+        limits.limits.maxComputeWorkgroupSizeX = 256;
+        limits.limits.maxComputeWorkgroupSizeY = 256;
+        limits.limits.maxComputeWorkgroupSizeZ = 64;
+        limits.limits.maxComputeWorkgroupsPerDimension = 65535;
+        limits.limits.maxBufferSize = 1 << 28;
         deviceDesc.requiredLimits = &limits;
 
         // Send request
-        wgpuAdapterRequestDevice(adptr, &deviceDesc, &sbGPUCtxDeviceCallback, cast(void*)&dvc);
+        wgpuAdapterRequestDevice(adptr, &deviceDesc, &sbGPUCtxDeviceCallback, &dvc);
         return dvc;
     }
 
@@ -89,85 +116,20 @@ public:
         device = createDeviceForAdapter(adapter);
         queue = wgpuDeviceGetQueue(device);
     }
-
-    /**
-        Creates a SPIR-V Shader
-    */
-    SbShader createShaderSPIRV(ubyte[] code, string name=null) {
-        return SbShader.createSPIRV(this, code, name);
-    }
-
-    /**
-        Creates a WSGL Shader
-    */
-    SbShader createShaderWSGL(string source, string name=null) {
-        return SbShader.createWGSL(this, source, name);
-    }
-
-    /**
-        Creates a vertex buffer
-    */
-    SbBuffer createVertexBuffer(const(void)* data, size_t size, string name=null) {
-        auto buffer = SbBuffer.createVertex(this, size, name);
-        buffer.bufferData(data, size, 0);
-        return buffer;
-    }
-
-    /**
-        Creates a vertex buffer
-    */
-    SbBuffer createVertexBuffer(size_t size, string name=null) {
-        return SbBuffer.createVertex(this, size, name);
-    }
-
-    /**
-        Creates a index buffer
-    */
-    SbBuffer createIndexBuffer(const(void)* data, size_t size, string name=null) {
-        auto buffer = SbBuffer.createIndex(this, size, name);
-        buffer.bufferData(data, size, 0);
-        return buffer;
-    }
-
-    /**
-        Creates a index buffer
-    */
-    SbBuffer createIndexBuffer(size_t size, string name=null) {
-        return SbBuffer.createIndex(this, size, name);
-    }
 }
 
+/**
+    A usable rendering source
+*/
+abstract class SbGFXRenderSource {
 
+    /**
+        Gets a view in to the rendering source
+    */
+    abstract WGPUTextureView currentTexture();
 
-
-// class SbCommandEncoder {
-// private:
-//     SbGPUContext ctx;
-//     WGPUCommandEncoder encoder;
-
-//     static SbCommandEncoder create(SbGPUContext ctx) {
-//         this.ctx = ctx;
-
-//         WGPUCommandEncoderDescriptor desc;
-//         desc.label = "Command Encoder";
-//         encoder = wgpuDeviceCreateCommandEncoder(ctx.device, &desc);
-//     }
-
-// public:
-
-//     SbRenderPass beginRenderPass() {
-//         wgpuCommandEncoderBeginRenderPass(encoder, null);
-//         // wgpuCommandEncoderBeginRenderPass(encoder, );
-//     }
-
-// }
-
-// class SbRenderPass {
-// private:
-//     SbGPUContext ctx;
-//     WGPURenderPassEncoder pass;
-
-// public:
-
-
-// }
+    /**
+        Drops the render source backing texture if needed
+    */
+    abstract void dropIfNeeded();
+}

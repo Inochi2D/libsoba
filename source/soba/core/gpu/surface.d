@@ -7,123 +7,146 @@
     Surfaces
 */
 module soba.core.gpu.surface;
+import soba.core.gpu.texture;
 import soba.core.gpu;
 import bindbc.wgpu;
 import std.string;
 import bindbc.sdl;
+import std.exception;
 
 
-class SbSurface {
-private:
-    this() { }
+enum SbGFXSurfaceSwapMode {
 
-    SDL_Window* window;
-    SbGPUContext ctx;
+    /**
+        Disables VSync
+    */
+    Immediate = 0,
+
+    /**
+        Adaptive VSync
+    */
+    AdaptiveVSync = 1,
     
+    /**
+        Strict VSync
+    */
+    VSync = 2,
+}
+
+class SbGFXSurface : SbGFXRenderSource {
+private:
+    SDL_Window* window;
+    SbGFXContext ctx;
+    
+    bool transparent;
     WGPUSurfaceDescriptor sfcdesc;
     WGPUSurface surface;
 
-    WGPUSwapChainDescriptor swapdesc;
     WGPUSwapChain swapchain;
+    SbGFXSurfaceSwapMode swapMode;
+    WGPUTextureView currentTexture_;
+    WGPUTextureFormat swapchainFormat;
 
     int width_, height_;
 
-    // Create surface descriptor
-    WGPUSurfaceDescriptor createSurfaceDescriptor(SDL_Window* window) {
-        WGPUSurfaceDescriptor sfd;
+    void createSurface() {
+        WGPUSurfaceDescriptor desc;
 
-        SDL_SysWMinfo wminfo;
-        SDL_GetWindowWMInfo(window, &wminfo);
-        switch(wminfo.subsystem) {
+        SDL_SysWMinfo info;
+        SDL_GetWindowWMInfo(window, &info);
+        
+        version(Windows) {
 
-            // WINDOWS
-            version(Windows) {
-                case SDL_SYSWM_WINDOWS:
-                    auto win32_hwnd = wminfo.info.win.window;
-                    auto win32_hinst = wminfo.info.win.hinstance;
-                    WGPUSurfaceDescriptorFromWindowsHWND sfdHwnd = {
-                        chain: {
-                            next: null,
-                            sType: WGPUSType.SurfaceDescriptorFromWindowsHWND
-                        },
-                        hinstance: win32_hwnd,
-                        hwnd: win32_hinst
-                    };
-                    sfd.nextInChain = cast(const(WGPUChainedStruct)*)&sfdHwnd;
-                    break;
+            // Win32
+            WGPUSurfaceDescriptorFromWindowsHWND windowDesc;
+            windowDesc.hinstance = info.info.win.hinstance;
+            windowDesc.hwnd = info.info.win.window;
+            windowDesc.chain = WGPUChainedStruct(null, WGPUSType.SurfaceDescriptorFromWindowsHWND);
+            desc.nextInChain = cast(const(WGPUChainedStruct)*)&windowDesc;
+
+            this.surface = wgpuInstanceCreateSurface(ctx.getInstance(), &desc);
+        } else version(linux) {
+
+            // X11
+            if (wminfo.subsystem == SDL_SYSWM_X11) {
+                WGPUSurfaceDescriptorFromXlibWindow windowDesc;
+                windowDesc.display = info.info.x11.display;
+                windowDesc.window = info.info.x11.window;
+                windowDesc.chain = WGPUChainedStruct(null, WGPUSType.SurfaceDescriptorFromXlibWindow);
+                desc.nextInChain = cast(const(WGPUChainedStruct)*)&windowDesc;
             }
 
-            version(linux) {
-                // X11
-                case SDL_SYSWM_X11:
-                    auto x11_display = wminfo.info.x11.display;
-                    auto x11_window = wminfo.info.x11.window;
-                    WGPUSurfaceDescriptorFromXlibWindow sfdX11 = {
-                        chain: {
-                            next: null,
-                            sType: WGPUSType.SurfaceDescriptorFromXlibWindow
-                        },
-                        display: x11_display,
-                        window: x11_window
-                    };
-
-                    sfd.nextInChain = cast(const(WGPUChainedStruct)*)&sfdX11;
-                    break;
-
-                // WAYLAND
-                case SDL_SYSWM_WAYLAND:
-                    auto wl_display = wminfo.info.wl.display;
-                    auto wl_surface = wminfo.info.wl.surface;
-                    WGPUSurfaceDescriptorFromWaylandSurface sfdWL = {
-                        chain: {
-                            next: null,
-                            sType: WGPUSType.SurfaceDescriptorFromWaylandSurface
-                        },
-                        display: wl_display,
-                        surface: wl_surface
-                    };
-
-                    sfd.nextInChain = cast(const(WGPUChainedStruct)*)&sfdWL;
-                    break;
+            // WAYLAND
+            if (wminfo.subsystem == SDL_SYSWM_WAYLAND) {
+                WGPUSurfaceDescriptorFromWaylandSurface windowDesc;
+                windowDesc.display = info.info.wl.display;
+                windowDesc.surface = info.info.wl.surface;
+                windowDesc.chain = WGPUChainedStruct(null, WGPUSType.SurfaceDescriptorFromWaylandSurface);
+                desc.nextInChain = cast(const(WGPUChainedStruct)*)&windowDesc;
             }
-            
-            // macOS
-            version(OSX) {
-                case SDL_SYSWM_COCOA:
-                    SDL_Renderer* renderer = SDL_CreateRenderer(handle, -1, SDL_RENDERER_PRESENTVSYNC);
-                    auto metal_layer = SDL_RenderGetMetalLayer(renderer);
-                    WGPUSurfaceDescriptorFromMetalLayer sfdMetal = {
-                        chain: {
-                            next: null,
-                            sType: WGPUSType.SurfaceDescriptorFromMetalLayer
-                        },
-                        layer: metal_layer
-                    };
-                    sfd = cast(const(WGPUChainedStruct)*)&sfdMetal;
-                    SDL_DestroyRenderer(renderer);
-            }
-            // Other platforms
-            default:
-
-                assert(0, "Sorry the specified platform is currently not supported!");
+            this.surface = wgpuInstanceCreateSurface(ctx.getInstance(), &desc);
+        } else version(OSX) {
+            SDL_Renderer* renderer = SDL_CreateRenderer(handle, -1, SDL_RENDERER_PRESENTVSYNC);
+            windowDesc.layer = SDL_RenderGetMetalLayer(renderer);
+            windowDesc.chain = WGPUChainedStruct(null, WGPUSType.SurfaceDescriptorFromWaylandSurface);
+            desc = cast(const(WGPUChainedStruct)*)&sfdMetal;
+            this.surface = wgpuInstanceCreateSurface(ctx.getInstance(), &desc);
+            SDL_DestroyRenderer(renderer);
         }
-        return sfd;
     }
 
-    WGPUSwapChainDescriptor createSwapchainDescriptor(SbGPUContext ctx, WGPUSurface surface, int width, int height) {
+    // (re-)create swapchain
+    void createSwapchain() {
+        swapchainFormat = wgpuSurfaceGetPreferredFormat(surface, ctx.getAdapter());
+
+        // Destroy the prior swapchain
+        if (swapchain) {
+            if (currentTexture_) wgpuTextureViewDrop(currentTexture_);
+            wgpuSwapChainDrop(swapchain);
+        }
+
+
+        // Calculate the presenting mode
+        // Immediate = no vsync
+        // FIFO = strict vsync
+        // Mailbox = VSync with frameskip
+        WGPUPresentMode mode = WGPUPresentMode.Immediate;
+        switch(swapMode) {
+
+            case SbGFXSurfaceSwapMode.Immediate:
+                mode = WGPUPresentMode.Immediate;
+                break;
+
+            case SbGFXSurfaceSwapMode.AdaptiveVSync:
+                mode = WGPUPresentMode.Mailbox;
+                break;
+
+            case SbGFXSurfaceSwapMode.VSync:
+                mode = WGPUPresentMode.Fifo;
+                break;
+            
+            default: break;
+        }
+
+        // Create a new descriptor and apply it to our swapchain
         WGPUSwapChainDescriptor desc;
-        desc = WGPUSwapChainDescriptor(
-            null,
-            "Swapchain",
-            WGPUTextureUsage.RenderAttachment,
-            wgpuSurfaceGetPreferredFormat(surface, ctx.getAdapter()),
-            width,
-            height,
-            WGPUPresentMode.Fifo
+        desc.width = width_;
+        desc.height = height_;
+        desc.presentMode = mode;
+        desc.format = swapchainFormat;
+        desc.usage = WGPUTextureUsage.RenderAttachment;
+        desc.nextInChain = cast(WGPUChainedStruct*)new WGPUSwapChainDescriptorExtras(
+            WGPUChainedStruct(
+                null,
+                cast(WGPUSType)WGPUNativeSType.SwapChainDescriptorExtras
+            ),
+            transparent ? WGPUCompositeAlphaMode.PreMultiplied : WGPUCompositeAlphaMode.Auto,
+            0,
+            null
         );
-
-        return desc;
+        swapchain = wgpuDeviceCreateSwapChain(ctx.getDevice(), this.surface, &desc);
     }
+
 public:
     /// Destructor
     ~this() {
@@ -134,15 +157,14 @@ public:
     /**
         Constructs a new Surface for a low level SDL window
     */
-    this(SbGPUContext ctx, SDL_Window* window, int width, int height) {
-        this.window = window;
+    this(SbGFXContext ctx, SDL_Window* window, int width, int height, SbGFXSurfaceSwapMode vsync = SbGFXSurfaceSwapMode.VSync, bool requestTransparent=false) {
+        transparent = requestTransparent;
         this.ctx = ctx;
+        this.window = window;
         this.width_ = width;
         this.height_ = height;
-        this.sfcdesc = this.createSurfaceDescriptor(window);
-        this.surface = wgpuInstanceCreateSurface(ctx.getInstance(), &this.sfcdesc);
-        this.swapdesc = this.createSwapchainDescriptor(ctx, this.surface, width, height);
-        this.swapchain = wgpuDeviceCreateSwapChain(ctx.getDevice(), this.surface, &this.swapdesc);
+        this.createSurface();
+        this.createSwapchain();
     }
 
     /**
@@ -153,17 +175,64 @@ public:
         this.width_ = width;
         this.height_ = height;
 
-        if (swapchain) wgpuSwapChainDrop(swapchain);
-        swapdesc = createSwapchainDescriptor(ctx, surface, width, height);
-        swapchain = wgpuDeviceCreateSwapChain(ctx.getDevice(), surface, &swapdesc);
+        this.createSwapchain();
     }
 
     /**
-        Returns the current texture (view)
+        Sets the swapping mode
     */
     final
+    void setSwapMode(SbGFXSurfaceSwapMode mode) { swapMode = mode; createSwapchain(); }
+
+    /**
+        Gets the swapping mode
+    */
+    final
+    SbGFXSurfaceSwapMode getSwapMode() { return swapMode; }
+
+    /**
+        Returns the next texture view to this surface
+    */
+    final
+    WGPUTextureView nextTexture() {
+        if (currentTexture_) this.dropTexture();
+        currentTexture_ = wgpuSwapChainGetCurrentTextureView(swapchain);
+        return currentTexture_;
+    }
+
+    /**
+        Drops the render source backing texture if needed
+    */
+    override
+    void dropIfNeeded() {
+        this.dropTexture();
+    }
+
+    /**
+        Returns the next texture view to this surface
+    */
+    override
     WGPUTextureView currentTexture() {
-        return wgpuSwapChainGetCurrentTextureView(swapchain);
+        return currentTexture_;
+    }
+
+    /**
+        Drops the current texture view
+    */
+    final
+    void dropTexture() {
+        if (currentTexture_) {
+            wgpuTextureViewDrop(currentTexture_);
+            currentTexture_ = null;
+        }
+    }
+
+    /**
+        Present the surface's swapchain
+    */
+    final
+    void present() {
+        wgpuSwapChainPresent(swapchain);
     }
 
     /// Width of the surface (in pixels)
@@ -171,4 +240,10 @@ public:
 
     /// Height of the surface (in pixels)
     final int height() { return height_; }
+
+    /// Returns the underlying WGPU handle
+    final WGPUSurface getHandle() { return surface; }
+
+    /// Returns the underlying WGPU swapchain handle
+    final WGPUSwapChain getSwapChainHandle() { return swapchain; }
 }
