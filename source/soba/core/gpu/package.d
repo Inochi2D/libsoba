@@ -119,17 +119,22 @@ public:
 }
 
 /**
-    A usable rendering source
+    A usable rendering source or target
 */
-abstract class SbGFXRenderSource {
+abstract class SbGFXTextureView {
 
     /**
-        Gets a view in to the rendering source
+        Gets a view in to the renderable
     */
-    abstract WGPUTextureView currentTexture();
+    abstract WGPUTextureView currentView();
 
     /**
         Drops the render source backing texture if needed
     */
     abstract void dropIfNeeded();
+
+    /**
+        Gets the native underlying WGPU format
+    */
+    abstract WGPUTextureFormat getNativeFormat();
 }

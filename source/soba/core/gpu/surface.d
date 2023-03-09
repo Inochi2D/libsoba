@@ -33,7 +33,7 @@ enum SbGFXSurfaceSwapMode {
     VSync = 2,
 }
 
-class SbGFXSurface : SbGFXRenderSource {
+class SbGFXSurface : SbGFXTextureView {
 private:
     SDL_Window* window;
     SbGFXContext ctx;
@@ -212,8 +212,16 @@ public:
         Returns the next texture view to this surface
     */
     override
-    WGPUTextureView currentTexture() {
+    WGPUTextureView currentView() {
         return currentTexture_;
+    }
+
+    /**
+        Gets the native underlying WGPU format
+    */
+    override
+    WGPUTextureFormat getNativeFormat() {
+        return swapchainFormat;
     }
 
     /**
