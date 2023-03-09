@@ -11,6 +11,8 @@ public import soba.core.gpu.buffer;
 public import soba.core.gpu.shader;
 public import soba.core.gpu.surface;
 public import soba.core.gpu.encoder;
+public import soba.core.gpu.pipeline;
+public import soba.core.gpu.texture;
 
 import bindbc.wgpu;
 import std.exception;
