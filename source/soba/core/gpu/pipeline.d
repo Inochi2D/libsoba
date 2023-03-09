@@ -86,6 +86,19 @@ enum SbGFXBlendOperation
     Max = WGPUBlendOperation.Max
 }
 
+enum SbGFXWindingOrder {
+    
+    /**
+        Counter-clockwise winding order
+    */
+    CCW,
+
+    /**
+        Clockwise winding order
+    */
+    CW
+}
+
 class SbGFXPipeline {
 private:
     const(char)* name;
@@ -98,6 +111,7 @@ private:
     SbGFXBlendFactor sfactor = SbGFXBlendFactor.Src, sfactorA = SbGFXBlendFactor.Src;
     SbGFXBlendFactor dfactor = SbGFXBlendFactor.OneMinusSrcAlpha, dfactorA = SbGFXBlendFactor.OneMinusSrcAlpha;
     SbGFXBlendOperation bop = SbGFXBlendOperation.Add;
+    SbGFXWindingOrder winding = SbGFXWindingOrder.CCW;
     WGPURenderPipelineDescriptor desc;
     WGPURenderPipeline pipeline;
 
@@ -132,12 +146,16 @@ private:
             bufferLayouts.ptr
         );
 
+        bool isStrip = 
+            topology == SbGFXPrimitiveTopology.LineStrip || 
+            topology == SbGFXPrimitiveTopology.TriangleStrip;
+
         // Primitives
         desc.primitive = WGPUPrimitiveState(
             null,
             cast(WGPUPrimitiveTopology)topology,
-            WGPUIndexFormat.Uint32,
-            WGPUFrontFace.CCW,
+            isStrip ? WGPUIndexFormat.Uint32 : WGPUIndexFormat.Undefined,
+            cast(WGPUFrontFace)winding,
             cast(WGPUCullMode)culling
         );
 
@@ -205,6 +223,13 @@ public:
     /**
         Adds a texture to the pipeline
     */
+    void addBuffer(SbGFXBufferBaseI buffer) {
+        this.buffers ~= buffer;
+    }
+
+    /**
+        Adds a texture to the pipeline
+    */
     void addTexture(SbGFXTexture texture) {
         this.shader = shader;
     }
@@ -237,6 +262,13 @@ public:
     */
     void setCullMode(SbGFXCullMode culling) {
         this.culling = culling;
+    }
+
+    /**
+        Sets the rendering culling mode
+    */
+    void setWinding(SbGFXWindingOrder winding) {
+        this.winding = winding;
     }
 
     /**
@@ -280,7 +312,7 @@ public:
     /**
         Whether the pipeline is ready for use
     */
-    bool ready() {
+    bool isReady() {
         return pipeline !is null;
     }
 
