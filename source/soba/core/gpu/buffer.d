@@ -27,7 +27,41 @@ enum SbGFXBufferType {
 
 struct SbGFXBindingLocation { int location; }
 
-class SbBuffer(T) {
+/**
+    A base interface for all buffer-compatible objects
+*/
+interface SbGFXBufferBaseI {
+    
+    /**
+        Handle of the buffer
+    */
+    WGPUBuffer getHandle();
+    
+    /**
+        Returns the layout of the buffer
+    */
+    WGPUVertexBufferLayout getLayout();
+
+    /**
+        Gets the count of elements in the buffer
+    */
+    size_t getCount();
+
+    /**
+        Gets the size of the buffer in bytes
+    */
+    size_t getSize();
+
+    /**
+        Gets the type of the buffer
+    */
+    SbGFXBufferType getType();
+}
+
+/**
+    A typed resizable buffer
+*/
+class SbGFXBuffer(T) : SbGFXBufferBaseI {
 private:
     size_t elements = 0;
     SbGFXContext ctx;
@@ -142,7 +176,7 @@ private:
         layout.attributes = attribs.ptr;
     }
     
-    void createBuffer(size_t elements, SbGFXBufferType type) {
+    void createBuffer(size_t elements) {
         this.elements = elements;
         WGPUBufferDescriptor desc;
 
@@ -163,7 +197,7 @@ private:
         buffer = wgpuDeviceCreateBuffer(device, &desc);
     }
     
-    void createBufferWithData(T[] data, SbGFXBufferType type) {
+    void createBufferWithData(T[] data) {
         this.createBuffer(data.length, type);
         this.bufferData(data, 0);
     }
@@ -173,13 +207,15 @@ public:
     /// Constructor
     this(SbGFXContext ctx, T[] data, SbGFXBufferType type) {
         this.ctx = ctx;
-        this.createBuffer(data, type);
+        this.type = type;
+        this.createBuffer(data);
     }
 
     /// 
-    this(SbGFXContext ctx, size_t startSize, SbGFXBufferType type) {
+    this(SbGFXContext ctx, size_t elements, SbGFXBufferType type) {
         this.ctx = ctx;
-        this.createBuffer(startSize, type);
+        this.type = type;
+        this.createBuffer(elements);
     }
 
     /**
@@ -217,15 +253,13 @@ public:
     /**
         Returns the layout of the buffer
     */
-    final
     WGPUVertexBufferLayout getLayout() {
         return layout;
     }
-
+    
     /**
         Handle of the buffer
     */
-    final
     WGPUBuffer getHandle() {
         return buffer;
     }
@@ -233,7 +267,6 @@ public:
     /**
         Gets the count of elements in the buffer
     */
-    final
     size_t getCount() {
         return elements;
     }
@@ -243,5 +276,12 @@ public:
     */
     size_t getSize() {
         return T.sizeof*elements;
+    }
+
+    /**
+        Gets the type of the buffer
+    */
+    SbGFXBufferType getType() {
+        return type;
     }
 }

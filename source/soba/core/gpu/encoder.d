@@ -1,5 +1,5 @@
 module soba.core.gpu.encoder;
-import soba.core.gpu : SbGFXContext, SbGFXRenderSource;
+import soba.core.gpu;
 import bindbc.wgpu;
 import std.string;
 import inmath;
@@ -83,7 +83,7 @@ public:
     /**
         Begins rendering pass
     */
-    void begin(SbGFXRenderSource[] targets, bool clear=true, bool scissor=false) {
+    void begin(SbGFXTextureView[] targets, bool clear=true, bool scissor=false) {
         if (recordingPass) return;
         recordingPass = true;
         
@@ -96,7 +96,7 @@ public:
         WGPURenderPassColorAttachment[] colorattachments;
         foreach(ref target; targets) {
             colorattachments ~= WGPURenderPassColorAttachment(
-                target.currentTexture(),
+                target.currentView(),
                 null,
                 loadOp,
                 WGPUStoreOp.Store,
@@ -122,6 +122,39 @@ public:
             cast(uint)scissorRect.width, 
             cast(uint)scissorRect.height
         );
+    }
+
+    /**
+        Sets the pipeline
+    */
+    void setPipeline(SbGFXPipeline pipeline) {
+        if (!recordingPass) return;
+        wgpuRenderPassEncoderSetPipeline(pass, pipeline.getHandle());
+    }
+
+    /**
+        Sets a vertex buffer
+    */
+    void setVertexBuffer(uint slot, SbGFXBufferBaseI buffer) {
+        if (!recordingPass) return;
+        if (!buffer) wgpuRenderPassEncoderSetVertexBuffer(pass, slot, null, 0, 0);
+        else wgpuRenderPassEncoderSetVertexBuffer(pass, slot, buffer.getHandle(), 0, buffer.getSize());
+    }
+
+    /**
+        Draws the current pipeline
+    */
+    void draw(uint vertices, uint instances, uint vertexOffset=0, uint instanceOffset=0) {
+        if (!recordingPass) return;
+        wgpuRenderPassEncoderDraw(pass, vertices, instances, vertexOffset, instanceOffset);
+    }
+
+    /**
+        Draws the current pipeline indexed
+    */
+    void drawIndexed(uint indices, uint instances, uint indexOffset=0, uint instanceOffset=0, int baseVertex=0) {
+        if (!recordingPass) return;
+        wgpuRenderPassEncoderDrawIndexed(pass, indices, instances, indexOffset, baseVertex, instanceOffset);
     }
 
     /**
