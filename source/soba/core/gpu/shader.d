@@ -24,8 +24,7 @@ public:
         Constructs a SPIR-V Shader
     */
     this(SbGFXContext ctx, ubyte[] code, string name=null) {
-        SbGFXShader shader = new SbGFXShader;
-
+        
         // Lang Descriptor
         WGPUShaderModuleSPIRVDescriptor shaderDesc;
         shaderDesc.code = cast(uint*)code.ptr;
@@ -45,8 +44,7 @@ public:
         Constructs a WGSL Shader
     */
     this(SbGFXContext ctx, string source, string name=null) {
-        SbGFXShader shader = new SbGFXShader;
-        
+
         // Lang Descriptor
         WGPUShaderModuleWGSLDescriptor shaderDesc;
         shaderDesc.code = source.ptr;
