@@ -67,6 +67,7 @@ private:
     SbGFXContext ctx;
 
     SbGFXBufferType type;
+    WGPUBufferDescriptor desc;
     WGPUBuffer buffer;
 
     WGPUVertexBufferLayout layout;
@@ -84,11 +85,11 @@ private:
             fmt = WGPUVertexFormat.Uint32;
         } else static if (isVector!X) {
             static if (is(X.vt : float)) {
-                fmt = WGPUVertexFormat.Float32+(X.dimensions-1);
+                fmt = cast(WGPUVertexFormat)(WGPUVertexFormat.Float32+(X.dimension-1));
             } else static if (is(X.vt : int)) {
-                fmt = WGPUVertexFormat.Sint32+(X.dimensions-1);
+                fmt = cast(WGPUVertexFormat)(WGPUVertexFormat.Sint32+(X.dimension-1));
             } else static if (is(X.vt : uint)) {
-                fmt = WGPUVertexFormat.Uint32+(X.dimensions-1);
+                fmt = cast(WGPUVertexFormat)(WGPUVertexFormat.Uint32+(X.dimension-1));
             }
         } else static if (isMatrix!X) {
 
@@ -105,7 +106,7 @@ private:
         static if (isMatrix!X) {
 
             // Detect matrix row size and pass that in
-            fmt = fmt+(X.rows-1);
+            fmt = cast(WGPUVertexFormat)fmt+(X.rows-1);
 
             // Detect column size and take that in to account by adding them to the list
             foreach(x; 0..X.columns) {
@@ -115,7 +116,7 @@ private:
                     bindLoc+x
                 );
             }
-            if (set) i += X.columns;
+            if (set) bindLoc += X.columns;
             offset += (X.mt.sizeof*X.rows);
         } else {
             attribs ~= WGPUVertexAttribute(
@@ -123,29 +124,30 @@ private:
                 offset,
                 bindLoc
             );
-            if (set) i += 1;
+            if (set) bindLoc += 1;
             offset += X.sizeof;
         }
     }
 
-    void generateStructLayout(X)(ref WGPUVertexAttribute[] attribs, ref i, size_t offset) {
+    void generateStructLayout(X)(ref WGPUVertexAttribute[] attribs, ref int i, size_t offset) {
         int bindLoc;
         static foreach(field; FieldNameTuple!X) {
 
             // One codegen cycle
             {
-                alias ft = mixin(q{typeof(T.%s}.format(field));
+                mixin(q{alias ft = T.%s;}.format(field));
+                alias ftt = typeof(ft);
 
-                static if (is(ft == struct)) {
-                    generateStructLayout!ft(attribs, i, offset);
+                static if (is(ftt == struct) && !isVector!ftt && !isMatrix!ftt) {
+                    generateStructLayout!ftt(attribs, i, offset);
                 } else {
 
                     // Get bind location UDA or use field position
-                    static if (hasUDA!(ft, SbGFXBindingLocation)) {
+                    static if (hasUDA!(ftt, SbGFXBindingLocation)) {
                         bindLoc = getUDAs!(ft, SbGFXBindingLocation).location;
-                        this.generateBasicLayout!ft(attribs, offset, bindLoc, false);
+                        this.generateBasicLayout!ftt(attribs, offset, bindLoc, false);
                     } else {
-                        this.generateBasicLayout!ft(attribs, offset, i, true);
+                        this.generateBasicLayout!ftt(attribs, offset, i, true);
                     }
                 }
             }
@@ -175,31 +177,43 @@ private:
         layout.attributeCount = cast(uint)attribs.length;
         layout.attributes = attribs.ptr;
     }
-    
-    void createBuffer(size_t elements) {
-        this.elements = elements;
-        WGPUBufferDescriptor desc;
 
+    void setupDesc(size_t elements, bool mapped) {
+        this.elements = elements;
+        desc.label = T.stringof.toStringz;
+        desc.size = T.sizeof*elements;
+        desc.mappedAtCreation = mapped;
         switch(type) {
             case SbGFXBufferType.Index:
-                desc.usage = WGPUBufferUsage.Index | WGPUBufferUsage.CopyDst;
+                desc.usage = WGPUBufferUsage.Index | WGPUBufferUsage.CopyDst | WGPUBufferUsage.CopySrc;
                 break;
             case SbGFXBufferType.Vertex:
-                desc.usage = WGPUBufferUsage.Vertex | WGPUBufferUsage.CopyDst;
+                desc.usage = WGPUBufferUsage.Vertex | WGPUBufferUsage.CopyDst | WGPUBufferUsage.CopySrc;
                 break;
             case SbGFXBufferType.Uniform:
-                desc.usage = WGPUBufferUsage.Uniform | WGPUBufferUsage.CopyDst;
+                desc.usage = WGPUBufferUsage.Uniform | WGPUBufferUsage.CopyDst | WGPUBufferUsage.CopySrc;
                 break;
+            default: break;
         }
-        desc.label = T.nameof.toStringz;
-        desc.size = T.sizeof*elements;
-        desc.mappedAtCreation = false;
-        buffer = wgpuDeviceCreateBuffer(device, &desc);
+    }
+    
+    void createBuffer(size_t elements) {
+        this.setupDesc(elements, false);
+        this.buffer = wgpuDeviceCreateBuffer(ctx.getDevice(), &desc);
+
+        this.updateLayout();
     }
     
     void createBufferWithData(T[] data) {
-        this.createBuffer(data.length, type);
-        this.bufferData(data, 0);
+        this.setupDesc(data.length, true);
+        this.buffer = wgpuDeviceCreateBuffer(ctx.getDevice(), &desc);
+
+        // Copy data over faster
+        T* range = cast(T*)wgpuBufferGetMappedRange(buffer, 0, desc.size);
+        range[0..data.length] = data[0..$];
+        wgpuBufferUnmap(buffer);
+
+        this.updateLayout();
     }
 
 public:
@@ -208,7 +222,7 @@ public:
     this(SbGFXContext ctx, T[] data, SbGFXBufferType type) {
         this.ctx = ctx;
         this.type = type;
-        this.createBuffer(data);
+        this.createBufferWithData(data);
     }
 
     /// 
@@ -222,7 +236,10 @@ public:
         Buffers data
     */
     void bufferData(T[] data, ulong offset=0) {
+        import std.stdio : writeln;
+        writeln("Buffering ", T.sizeof*data.length, " bytes of data...");
         wgpuQueueWriteBuffer(ctx.getQueue(), buffer, offset, data.ptr, T.sizeof*data.length);
+        
     }
 
     /**
@@ -230,24 +247,48 @@ public:
     */
     void resize(size_t elementCount) {
         size_t oldSize = this.getSize();
-        this.elements = data.length;
+        this.elements = elementCount;
 
         // Create new descriptor with new size
-        WGPUBufferDescriptor nudesc = buffdesc;
+        WGPUBufferDescriptor nudesc = desc;
         nudesc.size = this.getSize();
 
         // Create a new buffer with the new size
         WGPUBuffer newBuffer = wgpuDeviceCreateBuffer(ctx.getDevice(), &nudesc);
 
-        // Copy old data in to new buffer
-        auto range = wgpuBufferGetConstMappedRange(buffer, 0, oldSize);
-        wgpuQueueWriteBuffer(ctx.getQueue(), newBuffer, 0, range, oldSize);
-        wgpuBufferUnmap(buffer);
+        // Encode a copy from the old buffer to the new
+        WGPUCommandEncoderDescriptor cmddesc;
+        cmddesc.label = "Copy Encoder";
+        auto encoder = wgpuDeviceCreateCommandEncoder(ctx.getDevice(), &cmddesc);
+        wgpuCommandEncoderCopyBufferToBuffer(encoder, buffer, 0, newBuffer, 0, oldSize);
+        WGPUCommandBuffer cmdbuffer = wgpuCommandEncoderFinish(encoder, new WGPUCommandBufferDescriptor(
+            null,
+            "Copy Command"
+        ));
+        wgpuQueueSubmit(ctx.getQueue(), 1, &cmdbuffer);
 
         // Drop the old buffer and replace it with the new
         wgpuBufferDrop(buffer);
         buffer = newBuffer;
-        buffdesc = nudesc;
+        desc = nudesc;
+        this.updateLayout();
+    }
+
+    /**
+        Copies data from this buffer to the other buffer
+    */
+    void copyTo(SbGFXBuffer!T other, size_t offset, size_t length) {
+
+        // Encode a copy from the old buffer to the new
+        WGPUCommandEncoderDescriptor cmddesc;
+        cmddesc.label = "Copy Command";
+        auto encoder = wgpuDeviceCreateCommandEncoder(ctx.getDevice(), &cmddesc);
+        wgpuCommandEncoderCopyBufferToBuffer(encoder, buffer, offset, other.buffer, offset, T.sizeof*length);
+        WGPUCommandBuffer cmdbuffer = wgpuCommandEncoderFinish(encoder, new WGPUCommandBufferDescriptor(
+            null,
+            "Copy Command"
+        ));
+        wgpuQueueSubmit(ctx.getQueue(), 1, &cmdbuffer);
     }
 
     /**
