@@ -20,7 +20,10 @@ private:
     this() { }
     
 public:
-    static SbGFXShader createSPIRV(SbGFXContext ctx, ubyte[] code, string name=null) {
+    /**
+        Constructs a SPIR-V Shader
+    */
+    this(SbGFXContext ctx, ubyte[] code, string name=null) {
         SbGFXShader shader = new SbGFXShader;
 
         // Lang Descriptor
@@ -34,13 +37,14 @@ public:
         desc.label = name.toStringz;
         desc.nextInChain = cast(const(WGPUChainedStruct)*)&shaderDesc;
 
-        shader.mod = wgpuDeviceCreateShaderModule(ctx.getDevice(), &desc);
-        shader.desc = desc;
-        // shader.uniforms = SbDynamicBuffer.createUniform(ctx, 0, "Uniforms");
-        return shader;
+        this.mod = wgpuDeviceCreateShaderModule(ctx.getDevice(), &desc);
+        this.desc = desc;
     }
 
-    static SbGFXShader createWGSL(SbGFXContext ctx, string source, string name=null) {
+    /**
+        Constructs a WGSL Shader
+    */
+    this(SbGFXContext ctx, string source, string name=null) {
         SbGFXShader shader = new SbGFXShader;
         
         // Lang Descriptor
@@ -53,10 +57,8 @@ public:
         desc.label = name.toStringz;
         desc.nextInChain = cast(const(WGPUChainedStruct)*)&shaderDesc;
 
-        shader.mod = wgpuDeviceCreateShaderModule(ctx.getDevice(), &desc);
-        shader.desc = desc;
-        // shader.uniforms = SbDynamicBuffer.createUniform(ctx, 0, "Uniforms");
-        return shader;
+        this.mod = mod = wgpuDeviceCreateShaderModule(ctx.getDevice(), &desc);
+        this.desc = desc;
     }
 
     /// Destructor
