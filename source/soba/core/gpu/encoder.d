@@ -16,9 +16,10 @@ private:
     bool recordingPass = false;
     
     // ENCODER STATE
-    vec4 clearColor;
-    rect viewport;
-    rect scissorRect;
+    vec4 clearColor = vec4(0, 0, 0, 1);
+    rect scissorRect = rect(0, 0, 640, 480);
+    bool viewportSet = false;
+    rect viewport = rect(0, 0, 640, 480);
 
 public:
     this(SbGFXContext ctx, string name) {
@@ -51,7 +52,16 @@ public:
         Sets the encoder's viewport
     */
     void setViewport(rect viewport) {
+        viewportSet = true;
         this.viewport = viewport;
+    }
+
+    /**
+        Clears the encoder's viewport
+    */
+    void clearViewport() {
+        this.viewportSet = false;
+        this.viewport = rect.init;
     }
 
     /**
@@ -114,7 +124,7 @@ public:
         pass = wgpuCommandEncoderBeginRenderPass(encoder, &desc);
 
         // Per-encode render state
-        wgpuRenderPassEncoderSetViewport(pass, viewport.x, viewport.y, viewport.width, viewport.height, 0, 1);
+        if (viewportSet) wgpuRenderPassEncoderSetViewport(pass, viewport.x, viewport.y, viewport.width, viewport.height, 0, 1);
         if (scissor) wgpuRenderPassEncoderSetScissorRect(
             pass, 
             cast(uint)scissorRect.x, 
@@ -129,6 +139,7 @@ public:
     */
     void setPipeline(SbGFXPipeline pipeline) {
         if (!recordingPass) return;
+        if (!pipeline.isReady) pipeline.finalize();
         wgpuRenderPassEncoderSetPipeline(pass, pipeline.getHandle());
     }
 
