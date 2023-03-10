@@ -3,6 +3,7 @@ import soba.core.gpu;
 import bindbc.wgpu;
 import std.string;
 import inmath;
+import std.exception;
 
 class SbGFXEncoder {
 private:
@@ -11,6 +12,7 @@ private:
 
     WGPUCommandEncoder encoder;
     WGPURenderPassEncoder pass;
+    SbGFXSurface surface;
 
     bool recording = false;
     bool recordingPass = false;
@@ -22,9 +24,13 @@ private:
     rect viewport = rect(0, 0, 640, 480);
 
 public:
-    this(SbGFXContext ctx, string name) {
+    this(SbGFXContext ctx, SbGFXSurface surface, string name) {
         this.name = name.toStringz;
         this.ctx = ctx;
+        this.surface = surface;
+
+        this.scissorRect = rect(0, 0, surface.width, surface.height);
+        this.viewport = rect(0, 0, surface.width, surface.height);
     }
 
     /**
@@ -124,14 +130,34 @@ public:
         pass = wgpuCommandEncoderBeginRenderPass(encoder, &desc);
 
         // Per-encode render state
-        if (viewportSet) wgpuRenderPassEncoderSetViewport(pass, viewport.x, viewport.y, viewport.width, viewport.height, 0, 1);
-        if (scissor) wgpuRenderPassEncoderSetScissorRect(
+        if (viewportSet) wgpuRenderPassEncoderSetViewport(
             pass, 
-            cast(uint)scissorRect.x, 
-            cast(uint)scissorRect.y, 
-            cast(uint)scissorRect.width, 
-            cast(uint)scissorRect.height
+            viewport.x, 
+            viewport.y, 
+            viewport.width, 
+            viewport.height, 
+            0, 
+            1
         );
+
+        // Handle scissor test
+        if (!scissor) {
+            wgpuRenderPassEncoderSetScissorRect(
+                pass, 
+                cast(uint)scissorRect.x, 
+                cast(uint)scissorRect.y, 
+                surface.width, 
+                surface.height
+            );
+        } else {
+            wgpuRenderPassEncoderSetScissorRect(
+                pass, 
+                cast(uint)scissorRect.x, 
+                cast(uint)scissorRect.y, 
+                clamp(cast(uint)scissorRect.width, 0, surface.width), 
+                clamp(cast(uint)scissorRect.height, 0, surface.height)
+            );
+        }
     }
 
     /**
@@ -141,6 +167,7 @@ public:
         if (!recordingPass) return;
         if (!pipeline.isReady) pipeline.finalize();
         wgpuRenderPassEncoderSetPipeline(pass, pipeline.getHandle());
+        if (pipeline.getBindGroupHandle()) wgpuRenderPassEncoderSetBindGroup(pass, 0, pipeline.getBindGroupHandle(), 0, null);
     }
 
     /**
@@ -148,8 +175,25 @@ public:
     */
     void setVertexBuffer(uint slot, SbGFXBufferBaseI buffer) {
         if (!recordingPass) return;
+        
         if (!buffer) wgpuRenderPassEncoderSetVertexBuffer(pass, slot, null, 0, 0);
-        else wgpuRenderPassEncoderSetVertexBuffer(pass, slot, buffer.getHandle(), 0, buffer.getSize());
+        else {
+            enforce(buffer.getType() == SbGFXBufferType.Vertex, "Invalid buffer type!");
+            wgpuRenderPassEncoderSetVertexBuffer(pass, slot, buffer.getHandle(), 0, buffer.getSize());
+        }
+    }
+
+    /**
+        Sets the index buffer
+    */
+    void setIndexBuffer(SbGFXBufferBaseI buffer) {
+        if (!recordingPass) return;
+        
+        if (!buffer) wgpuRenderPassEncoderSetIndexBuffer(pass, null, WGPUIndexFormat.Undefined, 0, 0);
+        else {
+            enforce(buffer.getType() == SbGFXBufferType.Index, "Invalid buffer type!");
+            wgpuRenderPassEncoderSetIndexBuffer(pass, buffer.getHandle(), WGPUIndexFormat.Uint32, 0, buffer.getSize());
+        }
     }
 
     /**
