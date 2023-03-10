@@ -225,6 +225,12 @@ public:
     }
 
     /**
+        Gets the native underlying WGPU sampler
+    */
+    override
+    WGPUSampler getNativeSampler() { return null; }
+
+    /**
         Drops the current texture view
     */
     final

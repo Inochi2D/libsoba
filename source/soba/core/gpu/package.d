@@ -129,7 +129,6 @@ abstract class SbGFXTextureView {
         Gets a view in to the renderable
     */
     abstract WGPUTextureView currentView();
-
     /**
         Drops the render source backing texture if needed
     */
@@ -139,4 +138,11 @@ abstract class SbGFXTextureView {
         Gets the native underlying WGPU format
     */
     abstract WGPUTextureFormat getNativeFormat();
+
+    /**
+        Gets a sampler in to the renderable
+
+        This returns null if the texture can not be sampled
+    */
+    abstract WGPUSampler getNativeSampler();
 }
