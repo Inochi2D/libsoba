@@ -245,7 +245,7 @@ private:
                     bglentries ~= WGPUBindGroupLayoutEntry(
                         null,
                         group.bindloc,
-                        WGPUShaderStage.Fragment,
+                        WGPUShaderStage.Vertex,
                         WGPUBufferBindingLayout(
                             null,
                             WGPUBufferBindingType.Uniform,

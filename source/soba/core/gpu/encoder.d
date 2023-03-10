@@ -167,7 +167,7 @@ public:
         if (!recordingPass) return;
         if (!pipeline.isReady) pipeline.finalize();
         wgpuRenderPassEncoderSetPipeline(pass, pipeline.getHandle());
-        if (pipeline.getBindGroupHandle()) wgpuRenderPassEncoderSetBindGroup(pass, 0, pipeline.getBindGroupHandle(), 0, null);
+        wgpuRenderPassEncoderSetBindGroup(pass, 0, pipeline.getBindGroupHandle(), 0, null);
     }
 
     /**

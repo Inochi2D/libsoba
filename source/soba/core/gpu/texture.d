@@ -9,8 +9,10 @@
 module soba.core.gpu.texture;
 import soba.core.gpu;
 import bindbc.wgpu;
-import gamut;
+import imagefmt;
 import inmath.math;
+import std.format;
+import std.exception;
 
 enum SbGFXTextureWrapMode {
     Repeat,
@@ -40,35 +42,26 @@ enum SbGFXTextureFilter {
     Texture formats supported by soba
 */
 enum SbGFXTextureFormat {
+
+    /**
+        Red
+    */
+    Red,
+
+    /**
+        Red and Green
+    */
+    RG,
+
+    /**
+        (Will be auto converted to RGBA from RGB)
+    */
+    RGB,
+
     /**
         8-bit unsigned RGBA
     */
-    RGBA8,
-
-    /**
-        32-bit floating point RGBA
-    */
-    RGBA32,
-    
-    /**
-        8-bit unsigned RG
-    */
-    RG8,
-
-    /**
-        32-bit floating point RG
-    */
-    RG32,
-    
-    /**
-        8-bit unsigned Red
-    */
-    Red8,
-
-    /**
-        32-bit floating point Red
-    */
-    Red32
+    RGBA
 }
 
 class SbGFXTexture : SbGFXTextureView {
@@ -94,40 +87,8 @@ private:
     SbGFXTextureFilter magfilter;
     ushort anisotropy = 1;
 
-    SbGFXTextureFormat gamutToNativeFormat(PixelType type) {
-        switch(type) {
-            case PixelType.rgbaf32: return SbGFXTextureFormat.RGBA32;
-            case PixelType.rgba8:   return SbGFXTextureFormat.RGBA8;
-
-            case PixelType.laf32:   return SbGFXTextureFormat.RG32;
-            case PixelType.la8:     return SbGFXTextureFormat.RG8;
-
-            case PixelType.lf32:    return SbGFXTextureFormat.Red32;
-            case PixelType.l8:      return SbGFXTextureFormat.Red8;
-
-            default: throw new Exception("Unsupported pixel type!");
-        }
-    }
-
-    int getChannelsFromType() {
-        
-        // Handle internal auto-conversion
-        switch(format) {
-
-            // RGBA
-            case WGPUTextureFormat.RGBA8Uint:       return 4;
-            case WGPUTextureFormat.RGBA32Float:     return 4;
-
-            // Grayscale-Alpha
-            case WGPUTextureFormat.RG8Uint:         return 2;
-            case WGPUTextureFormat.RG32Float:       return 2;
-
-            // Grayscale
-            case WGPUTextureFormat.R8Uint:          return 1;
-            case WGPUTextureFormat.R32Float:        return 1;
-
-            default: return 4;
-        }
+    SbGFXTextureFormat toNativeType(ref IFImage img) {
+        return cast(SbGFXTextureFormat)(img.c-1);
     }
 
     void createTexture(SbGFXTextureFormat fmt) {
@@ -141,17 +102,16 @@ private:
         // Get texture format
         this.sbformat = fmt;
         switch(fmt) {
-            case SbGFXTextureFormat.RGBA32: format = WGPUTextureFormat.RGBA32Float;     break;
-            case SbGFXTextureFormat.RGBA8:  format = WGPUTextureFormat.RGBA8Uint;       break;
-
-            case SbGFXTextureFormat.RG32:   format = WGPUTextureFormat.RG32Float;       break;
-            case SbGFXTextureFormat.RG8:    format = WGPUTextureFormat.RG8Uint;         break;
-
-            case SbGFXTextureFormat.Red32:  format = WGPUTextureFormat.R32Float;        break;
-            case SbGFXTextureFormat.Red8:   format = WGPUTextureFormat.R8Uint;          break;
-
+            // TODO: Do conversion
+            case SbGFXTextureFormat.RGBA:   format = WGPUTextureFormat.RGBA8Unorm;           break;
+            case SbGFXTextureFormat.RGB:    format = WGPUTextureFormat.RGBA8Unorm;           break;
+            case SbGFXTextureFormat.RG:     format = WGPUTextureFormat.RG8Unorm;             break;
+            case SbGFXTextureFormat.Red:    format = WGPUTextureFormat.R8Unorm;              break;
             default: break;
         }
+
+        import std.stdio : writeln;
+        writeln(width, " ", height);
 
         // Create descriptor for texture
         desc = WGPUTextureDescriptor(
@@ -167,6 +127,7 @@ private:
             null
         );
         texture = wgpuDeviceCreateTexture(ctx.getDevice(), &desc);
+        enforce(texture !is null, "Texture failed creation!");
     }
 
     void createView() {
@@ -180,9 +141,11 @@ private:
         WGPUTextureViewDescriptor wdesc;
         wdesc.arrayLayerCount = 1;
         wdesc.baseArrayLayer = 0;
-        wdesc.baseMipLevel = 0;
+
         wdesc.mipLevelCount = 1;
-        wdesc.nextInChain = null,
+        wdesc.baseMipLevel = 0;
+
+        wdesc.nextInChain = null;
         wdesc.aspect = WGPUTextureAspect.All;
         wdesc.format = format;
         wdesc.dimension = WGPUTextureViewDimension.D2;
@@ -222,11 +185,11 @@ public:
     }
 
     /// 
-    this(SbGFXContext ctx, ref Image image) {
+    this(SbGFXContext ctx, ref IFImage image) {
         this.ctx = ctx;
-        this.width = width;
-        this.height = height;
-        this.createTexture(gamutToNativeFormat(image.type));
+        this.width = image.w;
+        this.height = image.h;
+        this.createTexture(toNativeType(image));
         this.createView();
         this.createSampler();
         this.setTextureData(image);
@@ -240,76 +203,66 @@ public:
         this.createTexture(format);
         this.createView();
         this.createSampler();
-        this.setTextureSubData(data, 0, 0, width, height, getChannelsFromType());
+        this.setTextureSubData(data, 0, 0, width, height, cast(int)format+1);
     }
 
     /**
         Sets the texture data for the texture
     */
-    void setTextureData(ref Image image) {
+    void setTextureData(ref IFImage image) {
         this.setTextureSubData(image);
     }
 
     /**
         Sets the texture data for the texture
     */
-    void setTextureSubData(ref Image image, int x = -1, int y = -1, int width = -1, int height = -1) {
+    void setTextureSubData(ref IFImage image, int x = -1, int y = -1, int width = -1, int height = -1) {
         
         // Handle clamping of texture coordinates
-        if (width < 1) width = image.width;
-        if (height < 1) height = image.height;
+        if (width < 1) width = image.w;
+        if (height < 1) height = image.h;
 
-        int channels = 4;
+        int channels = image.c;
+        ubyte[] data;
+
+        import std.stdio : writeln;
+        writeln(image.buf8.length);
+
         // Handle internal auto-conversion
         switch(format) {
 
             // RGBA
-            case WGPUTextureFormat.RGBA8Uint:
-                if (!image.is8Bit) image.convertTo8Bit();
-                if (image.type != PixelType.rgba8) image.convertToRGBA();
-                break;
-            case WGPUTextureFormat.RGBA32Float:
-                if (!image.isFP32) image.convertToFP32();
-                if (image.type != PixelType.rgbaf32) image.convertToRGBA();
+            case WGPUTextureFormat.RGBA8UnormSrgb:
+            case WGPUTextureFormat.RGBA8Unorm:
+                if (image.c == 3) {
+                    data.length = image.buf8.length+(image.w*image.h);
+                    conv_rgb2rgba(image.buf8, data);
+                    channels = 4;
+                } else {
+                    data = image.buf8;
+                }
                 break;
 
             // Grayscale-Alpha
-            case WGPUTextureFormat.RG8Uint:
-                if (!image.is8Bit) image.convertTo8Bit();
-                if (image.type != PixelType.la8) image.convertToGreyscaleAlpha();
-                channels = 2;
-                break;
-            case WGPUTextureFormat.RG32Float:
-                if (!image.isFP32) image.convertToFP32();
-                if (image.type != PixelType.laf32) image.convertToGreyscaleAlpha();
-                channels = 2;
+            case WGPUTextureFormat.RG8Unorm:
+                data = image.buf8;
                 break;
 
             // Grayscale
-            case WGPUTextureFormat.R8Uint:
-                if (!image.is8Bit) image.convertTo8Bit();
-                if (image.type != PixelType.l8) image.convertToGreyscale();
-                channels = 1;
-                break;
-            case WGPUTextureFormat.R32Float:
-                if (!image.isFP32) image.convertToFP32();
-                if (image.type != PixelType.lf32) image.convertToGreyscale();
-                channels = 1;
+            case WGPUTextureFormat.R8Unorm:
+                data = image.buf8;
                 break;
 
             default: break;
         }
-
-        // Get data out
-        ubyte[] data = image.allPixelsAtOnce();
         this.setTextureSubData(data, x, y, width, height, channels);
     }
 
     void setTextureSubData(ubyte[] data, int x, int y, int width, int height, int channels) {
-        if (x < 0) x = clamp(x, 0, desc.size.width);
-        if (y < 0) x = clamp(y, 0, desc.size.height);
-        width = clamp(width, 1, desc.size.width-x);
-        height = clamp(height, 1, desc.size.height-y);
+        // if (x < 0) x = clamp(x, 0, desc.size.width);
+        // if (y < 0) x = clamp(y, 0, desc.size.height);
+        // width = clamp(width, 1, desc.size.width-x);
+        // height = clamp(height, 1, desc.size.height-y);
 
         auto size = WGPUExtent3D(
             width,
@@ -317,22 +270,20 @@ public:
             1
         );
 
-        size_t boffset = y * (channels * width) + (channels * x);
-
         wgpuQueueWriteTexture(ctx.getQueue(), 
             new WGPUImageCopyTexture(
                 null,
                 texture,
                 0,
-                WGPUOrigin3D(x, y, 0),
+                WGPUOrigin3D(0, 0, 0),
                 WGPUTextureAspect.All
             ),
             data.ptr,
             data.length,
             new WGPUTextureDataLayout(
                 null,
-                cast(ulong)boffset,
-                (channels) * width,
+                0,
+                channels * width,
                 height
             ),
             &size
