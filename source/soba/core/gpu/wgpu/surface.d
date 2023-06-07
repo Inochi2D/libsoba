@@ -9,6 +9,7 @@ class SbWGPUSurface : SbGPUSurface {
 private:
     int swapInterval = 1;
     uint width_, height_;
+    uint sbwidth_, sbheight_;
     float dpiScaleX_, dpiScaleY_;
     WGPUTexture currentTexture_;
 
@@ -110,16 +111,11 @@ private:
         swapchain = wgpuDeviceCreateSwapChain(context.getDevice(), this.surface, &desc);
     }
 
-    void createQueue() {
-        queue = wgpuDeviceGetQueue(context.getDevice());
-    }
-
 protected:
     SbWGPUContext context;
     WGPUSurface surface;
     WGPUSwapChain swapchain;
     WGPUTextureFormat swapchainFormat;
-    WGPUQueue queue;
 
 public:
     this(SbGPUContext context, SbGPUCreationTargetI target) {
@@ -137,10 +133,9 @@ public:
         dpiScaleX_ = cast(float)width_/cast(float)swidth;
         dpiScaleY_ = cast(float)height_/cast(float)sheight;
         
-        // Create surfaces, swapchains and queues.
+        // Create surface and swapchain.
         createSurface(target.getHandle());
         createSwapchain();
-        createQueue();
     }
 
     /**
@@ -168,9 +163,15 @@ public:
     float dpiScaleY() { return dpiScaleY_; }
 
     override
-    void onResize(uint width, uint height) {
-        width_ = width;
-        height_ = width;
+    void onResize(uint swidth, uint sheight) {
+
+        // Gets size of window in pixels.
+        SDL_GetWindowSizeInPixels(target.getHandle(), cast(int*)&width_, cast(int*)&height_);
+
+        // Calculate DPI scale
+        dpiScaleX_ = cast(float)width_/cast(float)swidth;
+        dpiScaleY_ = cast(float)height_/cast(float)sheight;
+
         this.createSwapchain();
     }
 
