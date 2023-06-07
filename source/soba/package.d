@@ -23,10 +23,7 @@ public import soba.core;
 void sbInit() {
     auto sdlSupport = loadSDL();
     enforce(sdlSupport != SDLSupport.noLibrary, "SDL2 was not found!");
-    enforce(sdlSupport >= SDLSupport.sdl2014, "SDL2 is too old, 2.0.20 or newer is expected!");
-
-    auto wgpuSupport = loadWGPU();
-    enforce(wgpuSupport != WGPUSupport.noLibrary, "WGPU was not found!");
+    enforce(sdlSupport >= SDLSupport.v2_26, "SDL2 is too old, 2.26 or newer is expected!");
 
     SDL_Init(SDL_INIT_EVERYTHING);
 }

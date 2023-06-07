@@ -4,145 +4,186 @@
     
     Authors: Luna Nielsen
 
-    GPU Context
+    Soba GPU is a abstraction layer to allow libsoba to work with various graphics APIs
+    Current target support is OpenGL and WGPU, more graphics APIs may be added down the line.
 */
 module soba.core.gpu;
-public import soba.core.gpu.buffer;
-public import soba.core.gpu.shader;
-public import soba.core.gpu.surface;
-public import soba.core.gpu.encoder;
-public import soba.core.gpu.pipeline;
-public import soba.core.gpu.texture;
-
-import bindbc.wgpu;
-import std.exception;
-import std.conv;
+import bindbc.sdl;
 import soba.core.gpu.surface;
+import soba.core.gpu.wgpu;
+import soba.core.gpu.gl;
 
 private {
-    extern(C)
-    void sbGPUCtxAdapterCallback(WGPURequestAdapterStatus status, WGPUAdapter adapter, const(char)* message, void* userdata) {
-        *cast(WGPUAdapter*)userdata = adapter;
-    }
-
-    extern(C)
-    void sbGPUCtxDeviceCallback(WGPURequestDeviceStatus status, WGPUDevice device, const(char)* message, void* userdata) {
-        *cast(WGPUDevice*)userdata = device;
-    }
+    __gshared SbGPUContextType sbGlobalContextType;
 }
 
-class SbGFXContext {
-private:
-    WGPUInstance instance;
-    WGPUAdapter adapter;
-    WGPUDevice device;
+/**
+    Soba GPU context type
+*/
+enum SbGPUContextType : uint {
 
-    WGPUQueue queue;
+    /**
+        Automatically determine the best context
+    */
+    Auto = 0,
 
-
-    WGPUAdapter createAdapter(WGPUInstance instance) {
-        WGPUAdapter adptr;
-        
-        // Request options
-        WGPURequestAdapterOptions options;
-        options.powerPreference = WGPUPowerPreference.LowPower;
-
-        // Send request
-        wgpuInstanceRequestAdapter(instance, &options, &sbGPUCtxAdapterCallback, &adptr);
-        return adptr;
-    }
+    /**
+        An OpenGL 3.1 context
+    */
+    OpenGL = 1,
     
-    WGPUDevice createDeviceForAdapter(WGPUAdapter adptr) {
-        WGPUDevice dvc;
-        WGPUDeviceDescriptor deviceDesc;
+    /**
+        A WGPU-Native context
+    */
+    WebGPU = 2,
 
-        // WGPU limits list is pretty long...
-        WGPURequiredLimits limits;
-        limits.limits.maxTextureDimension1D = 2048;
-        limits.limits.maxTextureDimension2D = 2048;
-        limits.limits.maxTextureDimension3D = 256;
-        limits.limits.maxTextureArrayLayers = 256;
-        limits.limits.maxBindGroups = 4;
-        limits.limits.maxBindingsPerBindGroup = 640;
-        limits.limits.maxDynamicUniformBuffersPerPipelineLayout = 8;
-        limits.limits.maxDynamicStorageBuffersPerPipelineLayout = 4;
-        limits.limits.maxSampledTexturesPerShaderStage = 16;
-        limits.limits.maxSamplersPerShaderStage = 16;
-        limits.limits.maxStorageBuffersPerShaderStage = 4;
-        limits.limits.maxStorageTexturesPerShaderStage = 4;
-        limits.limits.maxUniformBuffersPerShaderStage = 12;
-        limits.limits.maxUniformBufferBindingSize = 16 << 10;
-        limits.limits.maxStorageBufferBindingSize = 128 << 20;
-        limits.limits.maxVertexBuffers = 8;
-        limits.limits.maxVertexAttributes = 16;
-        limits.limits.maxVertexBufferArrayStride = 2048;
-        limits.limits.minUniformBufferOffsetAlignment = 256;
-        limits.limits.minStorageBufferOffsetAlignment = 256;
-        limits.limits.maxInterStageShaderComponents = 60;
-        limits.limits.maxComputeWorkgroupStorageSize = 16352;
-        limits.limits.maxComputeInvocationsPerWorkgroup = 256;
-        limits.limits.maxComputeWorkgroupSizeX = 256;
-        limits.limits.maxComputeWorkgroupSizeY = 256;
-        limits.limits.maxComputeWorkgroupSizeZ = 64;
-        limits.limits.maxComputeWorkgroupsPerDimension = 65535;
-        limits.limits.maxBufferSize = 1 << 28;
-        deviceDesc.requiredLimits = &limits;
+    /**
+        The amount of supported contexts.
+    */
+    COUNT
+}
 
-        // Send request
-        wgpuAdapterRequestDevice(adptr, &deviceDesc, &sbGPUCtxDeviceCallback, &dvc);
-        return dvc;
-    }
-
-package(soba.core.gpu):
-    WGPUInstance getInstance() { return instance; }
-    WGPUAdapter getAdapter() { return adapter; }
-    WGPUDevice getDevice() { return device; }
-    WGPUQueue getQueue() { return queue; }
-
-public:
-
-    /// Destructor
-    ~this() {
-
-        // Drop WGPU resources
-        wgpuDeviceDrop(device);
-        wgpuAdapterDrop(adapter);
-        wgpuInstanceDrop(instance);
-    }
-
-    /// Constructor
-    this() {
-        WGPUInstanceDescriptor desc;
-        instance = wgpuCreateInstance(&desc);
-        adapter = createAdapter(instance);
-        device = createDeviceForAdapter(adapter);
-        queue = wgpuDeviceGetQueue(device);
+SbGPUContextType sbGPUResolveContextType(SbGPUContextType type) {
+    switch(type) {
+        
+        // TODO: Once more native backends are added, default to those based
+        // on platform.
+        case SbGPUContextType.Auto:
+            return SbGPUContextType.WebGPU;
+        
+        // Explicit types will just return itself
+        case SbGPUContextType.OpenGL:
+        case SbGPUContextType.WebGPU:
+            return type;
+        
+        default: throw new Exception("Invalid context type!");
     }
 }
 
 /**
-    A usable rendering source or target
+    Interface implemented by targets that can be used to create a soba context
 */
-abstract class SbGFXTextureView {
+interface SbGPUCreationTargetI {
+public:
 
     /**
-        Gets a view in to the renderable
+        Whether the creation target already has a valid context
     */
-    abstract WGPUTextureView currentView();
+    bool hasContext();
+    
     /**
-        Drops the render source backing texture if needed
+        The GPU context of the target
     */
-    abstract void dropIfNeeded();
+    ref SbGPUContext gpuContext();
 
     /**
-        Gets the native underlying WGPU format
+        Gets handle of the creation target
     */
-    abstract WGPUTextureFormat getNativeFormat();
+    SDL_Window* getHandle();
+}
+
+/**
+    A generic Soba GPU context
+
+    Use getContextType() together with casting to get access to lower level functionality of the context.
+
+    setupForApp is called for graphics APIs which has a top level context independent of a surface
+    setupForTarget is called for graphics APIs which has a top level context dependent on a surface (OpenGL)
+*/
+abstract class SbGPUContext {
+public:
+    this() { }
 
     /**
-        Gets a sampler in to the renderable
-
-        This returns null if the texture can not be sampled
+        The type of GPU context
     */
-    abstract WGPUSampler getNativeSampler();
+    abstract SbGPUContextType getContextType();
+    
+    /**
+        Setup function called for initial window creation
+    */
+    abstract void setupForTarget(SbGPUCreationTargetI target);
+
+    /**
+        Make context current. (OpenGL only)
+    */
+    abstract void makeCurrent();
+
+    /**
+        Gets the target of the context
+    */
+    abstract ref SbGPUCreationTargetI getTarget();
+
+    /**
+        Gets the surface associated with the GPU context
+    */
+    abstract ref SbGPUSurface getSurface();
+}
+
+/**
+    Creates a new Soba GPU Context
+*/
+SbGPUContext sbGPUNewContext(SbGPUCreationTargetI target, SbGPUContextType contextType) {
+    SbGPUContext ctx;
+    switch(contextType) {
+        case SbGPUContextType.WebGPU:
+            ctx = new SbWGPUContext();
+            break;
+        
+        case SbGPUContextType.OpenGL:
+            ctx = new SbGLContext();
+            break;
+
+        // NOTE: OpenGL has no app-level init
+        default: throw new Exception("Graphics API not supported!");
+    }
+    ctx.setupForTarget(target);
+    return ctx;
+}
+
+/**
+    Initialize connection to graphics apis
+*/
+void sbGPUInit(SbGPUContextType contextType) {
+    sbGlobalContextType = contextType;
+
+    switch(contextType) {
+        case SbGPUContextType.WebGPU:
+            sbWGPUInit();
+            return;
+        
+        // NOTE: OpenGL has no app-level init
+        default: return;
+    }
+}
+
+SbGPUContextType sbGPUGetGlobalContextType() {
+    return sbGlobalContextType;
+}
+
+SDL_Window* sbGPUCreateCompatibleSDLWindow(const(char)* title, int width, int height, uint windowFlags, SbGPUContextType contextType) {
+    switch(contextType) {
+        case SbGPUContextType.OpenGL:
+
+            // OpenGL Core 3.1
+            SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+            SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+            SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1);
+            windowFlags |= SDL_WINDOW_OPENGL;
+            break;
+
+        case SbGPUContextType.WebGPU:
+            break;
+        
+        default: throw new Exception("Context type not supported by window!");
+    }
+    
+    return SDL_CreateWindow(
+        title, 
+        SDL_WINDOWPOS_UNDEFINED, 
+        SDL_WINDOWPOS_UNDEFINED,
+        width,
+        height,
+        windowFlags
+    );
 }
