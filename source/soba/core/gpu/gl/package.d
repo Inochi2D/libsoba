@@ -1,9 +1,12 @@
 module soba.core.gpu.gl;
 import soba.core.gpu;
 import soba.core.gpu.surface;
+import soba.core.gpu.texture;
 import bindbc.opengl;
 import bindbc.sdl;
 import soba.core.gpu.gl.surface;
+import soba.core.gpu.gl.texture;
+import imagefmt;
 
 class SbGLContext : SbGPUContext {
 protected:
@@ -54,4 +57,28 @@ public:
     */
     override
     ref SbGPUSurface getSurface() { return surface; }
+
+    /**
+        Creates a new texture
+    */
+    override
+    SbGPUTexture createTexture(int width, int height, SbGPUTextureFormat format) {
+        return new SbGLTexture(this, width, height, format);
+    }
+
+    /**
+        Creates a new texture
+    */
+    override
+    SbGPUTexture createTexture(ref IFImage image) {
+        return new SbGLTexture(this, image);
+    }
+
+    /**
+        Creates a new texture
+    */
+    override
+    SbGPUTexture createTexture(ubyte[] data, int width, int height, SbGPUTextureFormat format) {
+        return new SbGLTexture(this, data, width, height, format);
+    }
 }

@@ -1,10 +1,13 @@
 module soba.core.gpu.wgpu;
 import soba.core.gpu;
 import soba.core.gpu.surface;
+import soba.core.gpu.texture;
 import soba.core.gpu.wgpu.surface;
 import bindbc.wgpu;
 import bindbc.sdl;
 import std.exception;
+import imagefmt;
+import soba.core.gpu.wgpu.texture;
 
 
 private {
@@ -68,14 +71,18 @@ private:
         limits.limits.maxBufferSize = 1 << 28;
         deviceDesc.requiredLimits = &limits;
         wgpuAdapterRequestDevice(adapter, &deviceDesc, &sbGPUCtxDeviceCallback, &device);
-    }    
+    }
 
+    void createQueue() {
+        queue = wgpuDeviceGetQueue(device);
+    }
 
 protected:
     SbGPUCreationTargetI target;
     SbGPUSurface surface;
     WGPUAdapter adapter;
     WGPUDevice device;
+    WGPUQueue queue;
 
 public:
     this() { }
@@ -99,6 +106,7 @@ public:
 
         createAdapter();
         createDevice();
+        createQueue();
 
         surface = new SbWGPUSurface(this, target);
     }
@@ -130,6 +138,35 @@ public:
         Gets WGPU device
     */
     ref WGPUDevice getDevice() { return device; }
+    
+    /**
+        Gets WGPU queue
+    */
+    ref WGPUDevice getQueue() { return queue; }
+
+    /**
+        Creates a new texture
+    */
+    override
+    SbGPUTexture createTexture(int width, int height, SbGPUTextureFormat format) {
+        return new SbWGPUTexture(this, width, height, format);
+    }
+
+    /**
+        Creates a new texture
+    */
+    override
+    SbGPUTexture createTexture(ref IFImage image) {
+        return new SbWGPUTexture(this, image);
+    }
+
+    /**
+        Creates a new texture
+    */
+    override
+    SbGPUTexture createTexture(ubyte[] data, int width, int height, SbGPUTextureFormat format) {
+        return new SbWGPUTexture(this, data, width, height, format);
+    }
 }
 
 /**

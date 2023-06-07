@@ -10,8 +10,10 @@
 module soba.core.gpu;
 import bindbc.sdl;
 import soba.core.gpu.surface;
+import soba.core.gpu.texture;
 import soba.core.gpu.wgpu;
 import soba.core.gpu.gl;
+import imagefmt;
 
 private {
     __gshared SbGPUContextType sbGlobalContextType;
@@ -118,6 +120,21 @@ public:
         Gets the surface associated with the GPU context
     */
     abstract ref SbGPUSurface getSurface();
+
+    /**
+        Creates a new texture
+    */
+    abstract SbGPUTexture createTexture(int width, int height, SbGPUTextureFormat format);
+
+    /**
+        Creates a new texture
+    */
+    abstract SbGPUTexture createTexture(ref IFImage image);
+
+    /**
+        Creates a new texture
+    */
+    abstract SbGPUTexture createTexture(ubyte[] data, int width, int height, SbGPUTextureFormat format);
 }
 
 /**
