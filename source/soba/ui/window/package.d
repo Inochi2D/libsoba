@@ -149,6 +149,19 @@ public:
                 case SDL_WINDOWEVENT_CLOSE:
                     this.close();
                     break;
+                case SDL_WINDOWEVENT_SIZE_CHANGED:
+                    gpuSurface().onResize(event.data1, event.data2);
+                    break;
+                case SDL_WINDOWEVENT_DISPLAY_CHANGED:
+
+                    // NOTE: If the display is changed resize the surface
+                    //       this should ensure that the window handles
+                    //       dragging across displays with differing DPIs
+                    //       correctly.
+                    uint dwidth, dheight;
+                    SDL_GetWindowSize(handle, cast(int*)&dwidth, cast(int*)&dheight);
+                    gpuSurface().onResize(dwidth, dheight);
+                    break;
                 default: break;
             }
         }
