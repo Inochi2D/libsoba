@@ -209,7 +209,7 @@ public:
     */
     override
     uint getWidth() {
-        return gpuSurface ? requestedWidth : gpuSurface.width();
+        return gpuSurface ? requestedWidth : gpuSurface.getWidthPx();
     }
     
     /**
@@ -217,6 +217,6 @@ public:
     */
     override
     uint getHeight() {
-        return gpuSurface ? requestedHeight : gpuSurface.height();
+        return gpuSurface ? requestedHeight : gpuSurface.getHeightPx();
     }
 }
