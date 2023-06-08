@@ -3,12 +3,14 @@ import soba.core.gpu;
 import soba.core.gpu.surface;
 import soba.core.gpu.texture;
 import soba.core.gpu.buffer;
+import soba.core.gpu.shader;
 import bindbc.opengl;
 import bindbc.sdl;
 import soba.core.gpu.gl.surface;
 import soba.core.gpu.gl.texture;
 import soba.core.gpu.gl.buffer;
 import imagefmt;
+import soba.core.gpu.gl.shader;
 
 class SbGLContext : SbGPUContext {
 protected:
@@ -131,5 +133,13 @@ public:
     override
     SbGPUBuffer createUniformBuffer(void* initialData, size_t length) {
         return new SbGLBuffer(this, SbGPUBufferType.Uniform, initialData, length);
+    }
+    
+    /**
+        Creates a new shader object with the specified variants.
+    */
+    override
+    SbGPUShaderObject createShader(SbGPUShaderCodeVariant[] variants) {
+        return new SbGLShaderObject(this, variants);
     }
 }

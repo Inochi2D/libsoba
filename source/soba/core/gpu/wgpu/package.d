@@ -3,6 +3,7 @@ import soba.core.gpu;
 import soba.core.gpu.surface;
 import soba.core.gpu.texture;
 import soba.core.gpu.buffer;
+import soba.core.gpu.shader;
 import soba.core.gpu.wgpu.surface;
 import bindbc.wgpu;
 import bindbc.sdl;
@@ -10,6 +11,7 @@ import std.exception;
 import imagefmt;
 import soba.core.gpu.wgpu.texture;
 import soba.core.gpu.wgpu.buffer;
+import soba.core.gpu.wgpu.shader;
 
 
 private {
@@ -216,6 +218,14 @@ public:
     override
     SbGPUBuffer createUniformBuffer(void* initialData, size_t length) {
         return new SbWGPUBuffer(this, SbGPUBufferType.Uniform, initialData, length);
+    }
+    
+    /**
+        Creates a new shader object with the specified variants.
+    */
+    override
+    SbGPUShaderObject createShader(SbGPUShaderCodeVariant[] variants) {
+        return new SbWGPUShaderObject(this, variants);
     }
 }
 
