@@ -17,4 +17,4 @@ dependency "inmath" version="~>1.0.5"
 targetPath "out/"
 copyFiles "libs/win32/SDL2.dll" platform="windows"
 
-versions "SDL_2_26" "GL_31"
+versions "SDL_2_26" "GL_31" "GL_ARB_texture_filter_anisotropic"

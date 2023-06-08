@@ -19,6 +19,8 @@ private:
         SbWGPUSurface surface;
     }
 
+    WGPUTextureView view;
+
 public:
     this(SbWGPUContext context, SbWGPUTexture texture) {
         this.context = context;
@@ -62,8 +64,24 @@ public:
                 return texture.getView();
                 
             case 1:
+                view = surface.getNextTexture();
+                return view;
+
+            default: assert(0, "Invalid tag!");
+        }
+    }
+
+    void dropView() {
+        switch(tag) {
+            case 0:
+                return;
                 
-                return surface.getNextTexture();
+            case 1:
+                if (view) {
+                    wgpuTextureViewDrop(view);
+                    view = null;
+                }
+                return;
 
             default: assert(0, "Invalid tag!");
         }

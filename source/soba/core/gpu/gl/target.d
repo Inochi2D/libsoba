@@ -91,4 +91,11 @@ public:
     GLuint getId() {
         return framebufferId;
     }
+
+    /**
+        Binds the framebuffer
+    */
+    void bind() {
+        glBindFramebuffer(GL_FRAMEBUFFER, framebufferId);
+    }
 }

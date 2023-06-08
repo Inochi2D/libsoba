@@ -4,13 +4,15 @@ import soba.core.gpu.surface;
 import soba.core.gpu.texture;
 import soba.core.gpu.buffer;
 import soba.core.gpu.shader;
-import bindbc.opengl;
-import bindbc.sdl;
+import soba.core.gpu.command;
 import soba.core.gpu.gl.surface;
 import soba.core.gpu.gl.texture;
 import soba.core.gpu.gl.buffer;
-import imagefmt;
 import soba.core.gpu.gl.shader;
+import soba.core.gpu.gl.command;
+import bindbc.opengl;
+import bindbc.sdl;
+import imagefmt;
 
 class SbGLContext : SbGPUContext {
 protected:
@@ -141,5 +143,13 @@ public:
     override
     SbGPUShaderObject createShader(SbGPUShaderCodeVariant[] variants) {
         return new SbGLShaderObject(this, variants);
+    }
+    
+    /**
+        Creates a new command buffer
+    */
+    override
+    SbGPUCommandBuffer createCommandBuffer() {
+        return new SbGLCommandBuffer(this);
     }
 }
