@@ -58,7 +58,12 @@ enum SbGPUTextureFormat {
     /**
         8-bit unsigned RGBA
     */
-    RGBA
+    RGBA,
+
+    /**
+        Depth-stencil texture
+    */
+    DepthStencil
 }
 
 /**
@@ -111,9 +116,4 @@ public:
         Returns the format of this texture
     */
     abstract SbGPUTextureFormat getFormat();
-
-    /**
-        Gets a render target from the texture
-    */
-    abstract SbGPURenderTarget toRenderTarget();
 }

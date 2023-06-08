@@ -37,6 +37,8 @@ private:
                 return GL_RGB;
             case SbGPUTextureFormat.RGBA:
                 return GL_RGBA;
+            case SbGPUTextureFormat.DepthStencil:
+                return GL_DEPTH24_STENCIL8;
             default: return GL_RGBA;
         }
     }
@@ -197,14 +199,6 @@ public:
     override
     SbGPUTextureFormat getFormat() {
         return format;
-    }
-
-    /**
-        Gets a render target from the texture
-    */
-    override
-    SbGPURenderTarget toRenderTarget() {
-        return new SbGLRenderTarget(context, this);
     }
 
     /**

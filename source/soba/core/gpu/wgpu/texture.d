@@ -59,10 +59,11 @@ private:
         this.sbformat = fmt;
         switch(fmt) {
             // TODO: Do conversion
-            case SbGPUTextureFormat.RGBA:   format = WGPUTextureFormat.RGBA8Unorm;           break;
-            case SbGPUTextureFormat.RGB:    format = WGPUTextureFormat.RGBA8Unorm;           break;
-            case SbGPUTextureFormat.RG:     format = WGPUTextureFormat.RG8Unorm;             break;
-            case SbGPUTextureFormat.Red:    format = WGPUTextureFormat.R8Unorm;              break;
+            case SbGPUTextureFormat.RGBA:           format = WGPUTextureFormat.RGBA8Unorm;           break;
+            case SbGPUTextureFormat.RGB:            format = WGPUTextureFormat.RGBA8Unorm;           break;
+            case SbGPUTextureFormat.RG:             format = WGPUTextureFormat.RG8Unorm;             break;
+            case SbGPUTextureFormat.Red:            format = WGPUTextureFormat.R8Unorm;              break;
+            case SbGPUTextureFormat.DepthStencil:   format = WGPUTextureFormat.Depth24PlusStencil8;  break;
             default: break;
         }
 
@@ -189,16 +190,14 @@ public:
     */
     override
     void setSubData(ref IFImage image, int x = -1, int y = -1, int width = -1, int height = -1) {
-        
+        enforce(format != WGPUTextureFormat.Depth32FloatStencil8, "Cannot set depth-stencil texture data");
+
         // Handle clamping of texture coordinates
         if (width < 1) width = image.w;
         if (height < 1) height = image.h;
 
         int channels = image.c;
         ubyte[] data;
-
-        import std.stdio : writeln;
-        writeln(image.buf8.length);
 
         // Handle internal auto-conversion
         switch(format) {
@@ -337,14 +336,6 @@ public:
             stateChanged = false;
         }
         return sampler;
-    }
-
-    /**
-        Gets a render target from the texture
-    */
-    override
-    SbGPURenderTarget toRenderTarget() {
-        return new SbWGPURenderTarget(context, this);
     }
     
 }

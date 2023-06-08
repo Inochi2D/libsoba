@@ -3,7 +3,9 @@ import soba.core.gpu.target;
 import soba.core.gpu.gl;
 import soba.core.gpu.gl.texture;
 import soba.core.gpu.gl.surface;
+import soba.core.gpu.texture;
 import bindbc.opengl;
+import soba.core.gpu.gl.fbo;
 
 /**
     A render target
@@ -11,75 +13,88 @@ import bindbc.opengl;
 class SbGLRenderTarget : SbGPURenderTarget {
 private:
     SbGLContext context;
-    GLuint framebufferId;
-
-    // NOTE: since this internal the tag determines which 
-    //       item in the union is active.
-    //       0 = SbWGPUTexture
-    //       1 = SbWGPUSurface
-    uint tag;
+    SbGPURenderTargetType tag;
     union {
-        SbGLTexture texture;
+        SbGLFramebuffer framebuffer;
         SbGLSurface surface;
     }
 
 public:
-    ~this() {
-        glDeleteFramebuffers(1, &framebufferId);
-    }
 
-    this(SbGLContext context, SbGLTexture texture) {
+    /// Constructor
+    this(SbGLContext context, SbGLFramebuffer framebuffer) {
         this.context = context;
-        this.texture = texture;
-        this.tag = 0;
-
-        // Create framebuffer
-        glGenFramebuffers(1, &framebufferId);
-        glBindFramebuffer(GL_FRAMEBUFFER, framebufferId);
-        glBindTexture(GL_TEXTURE_2D, texture.getId());
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.getId(), 0);
-
-        // Unbind to ensure state is not messed up
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        this.framebuffer = framebuffer;
+        this.tag = SbGPURenderTargetType.Framebuffer;
     }
 
+    /// Constructor
     this(SbGLContext context, SbGLSurface surface) {
         this.context = context;
         this.surface = surface;
-        this.tag = 1;
-
-        // Surface framebuffer ID is always 0.
-        this.framebufferId = 0;
+        this.tag = SbGPURenderTargetType.Surface;
     }
 
+    /**
+        Gets the render targets width in pixels
+    */
     override
     uint getWidthPx() {
         switch(tag) {
 
             // Texture target
-            case 0:
-                return texture.getWidthPx();
+            case SbGPURenderTargetType.Framebuffer:
+                return framebuffer.getWidthPx();
 
             // FRAMEBUFFER
-            case 1:
+            case SbGPURenderTargetType.Surface:
                 return surface.getWidthPx();
 
             default: assert(0, "Invalid tag!");
         }
     }
 
+    /**
+        Gets the render targets height in pixels
+    */
     override
     uint getHeightPx() {
         switch(tag) {
             
             // Texture target
-            case 0:
-                return texture.getHeightPx();
+            case SbGPURenderTargetType.Framebuffer:
+                return framebuffer.getHeightPx();
 
             // FRAMEBUFFER
-            case 1:
+            case SbGPURenderTargetType.Surface:
                 return surface.getHeightPx();
+
+            default: assert(0, "Invalid tag!");
+        }
+    }
+
+    /**
+        Gets the type of the render target
+    */
+    override
+    SbGPURenderTargetType getType() {
+        return tag;
+    }
+
+    /**
+        Whether the render target has a depth and stencil texture
+    */
+    override
+    bool hasDepthStencil() {
+        switch(tag) {
+            case SbGPURenderTargetType.Framebuffer:
+                foreach(target; framebuffer.getTargets()) {
+                    if (target.getFormat() == SbGPUTextureFormat.DepthStencil) return true;
+                }
+                return false;
+                
+            case SbGPURenderTargetType.Surface:
+                return true;
 
             default: assert(0, "Invalid tag!");
         }
@@ -89,13 +104,34 @@ public:
         Gets the internal framebuffer ID
     */
     GLuint getId() {
-        return framebufferId;
+        switch(tag) {
+            
+            // Texture target
+            case SbGPURenderTargetType.Framebuffer:
+                return framebuffer.getId();
+
+            // FRAMEBUFFER
+            case SbGPURenderTargetType.Surface:
+                return 0;
+
+            default: assert(0, "Invalid tag!");
+        }
     }
 
-    /**
-        Binds the framebuffer
-    */
     void bind() {
-        glBindFramebuffer(GL_FRAMEBUFFER, framebufferId);
+        switch(tag) {
+            
+            // Texture target
+            case SbGPURenderTargetType.Framebuffer:
+                glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getId());
+                return;
+
+            // FRAMEBUFFER
+            case SbGPURenderTargetType.Surface:
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                return;
+
+            default: assert(0, "Invalid tag!");
+        }
     }
 }

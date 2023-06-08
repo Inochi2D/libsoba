@@ -3,9 +3,12 @@ import soba.core.gpu.wgpu;
 import soba.core.gpu.wgpu.surface;
 import soba.core.gpu.wgpu.target;
 import soba.core.gpu.wgpu.shader;
+import soba.core.gpu.wgpu.texture;
+import soba.core.gpu.wgpu.fbo;
 import soba.core.gpu.command;
 import soba.core.gpu.target;
 import soba.core.gpu.shader;
+import soba.core.gpu.texture;
 import bindbc.wgpu;
 import inmath;
 
@@ -47,11 +50,12 @@ public:
     override
     void clear(SbGPURenderTarget target) {
         if (passRecording) return;
-        
+        if ((cast(SbWGPURenderTarget)target).getViewCount() == 0) return;
+
         // Setup render targets and clear state
         WGPURenderPassColorAttachment[] colors = [
             WGPURenderPassColorAttachment(
-                (cast(SbWGPURenderTarget)target).getView(),
+                (cast(SbWGPURenderTarget)target).getView(0),
                 null,
                 WGPULoadOp.Clear,
                 WGPUStoreOp.Store,
@@ -76,6 +80,7 @@ public:
     override
     void beginPass(SbGPURenderTarget target, bool clear=true, bool scissor=false) {
         if (passRecording) return;
+        if ((cast(SbWGPURenderTarget)target).getViewCount() == 0) return;
         passRecording = true;
 
         passScissor = scissor;
@@ -87,22 +92,65 @@ public:
                                 WGPULoadOp.Load;
 
 
+
         // Setup render targets and clear state
-        WGPURenderPassColorAttachment[] colors = [
-            WGPURenderPassColorAttachment(
-                (cast(SbWGPURenderTarget)target).getView(),
-                null,
-                loadOp,
-                WGPUStoreOp.Store,
-                WGPUColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a)
-            )
-        ];
+        WGPURenderPassDepthStencilAttachment* depthStencil;
+        WGPURenderPassColorAttachment[] colors;
+        if (SbWGPURenderTarget wgpuTarget = cast(SbWGPURenderTarget)target) {
+
+            switch(wgpuTarget.getType()) {
+                // Framebuffer
+                case SbGPURenderTargetType.Framebuffer:
+                    foreach(i; 0..wgpuTarget.getViewCount()) {
+                        SbWGPUTexture texture = cast(SbWGPUTexture)wgpuTarget.getFramebuffer().getTargets()[i];
+                        if (texture.getFormat() == SbGPUTextureFormat.DepthStencil) {
+                            depthStencil = new WGPURenderPassDepthStencilAttachment(
+                                (cast(SbWGPURenderTarget)target).getView(i),
+                                WGPULoadOp.Clear,
+                                WGPUStoreOp.Store,
+                                0,
+                                false,
+                                WGPULoadOp.Clear,
+                                WGPUStoreOp.Store,
+                                0,
+                                false
+                            );
+                        } else {
+                            colors ~= [
+                                WGPURenderPassColorAttachment(
+                                    (cast(SbWGPURenderTarget)target).getView(i),
+                                    null,
+                                    loadOp,
+                                    WGPUStoreOp.Store,
+                                    WGPUColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a)
+                                )
+                            ];
+                        }
+                    }
+                    break;
+
+                case SbGPURenderTargetType.Surface:
+                    colors ~= [
+                        WGPURenderPassColorAttachment(
+                            (cast(SbWGPURenderTarget)target).getView(0),
+                            null,
+                            loadOp,
+                            WGPUStoreOp.Store,
+                            WGPUColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a)
+                        )
+                    ];
+                    break;
+                
+                default: assert(0, "Invalid render target type! This is a bug.");
+            }
+        }
 
         // Setup descriptor and instantiate pass
         WGPURenderPassDescriptor desc;
         desc.label = "Renderpass";
         desc.colorAttachmentCount = 1;
         desc.colorAttachments = colors.ptr;
+        desc.depthStencilAttachment = depthStencil;
         desc.timestampWriteCount = 0;
 
         renderpass = wgpuCommandEncoderBeginRenderPass(encoder, &desc);
