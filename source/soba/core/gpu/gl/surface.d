@@ -39,13 +39,13 @@ public:
         Gets the width of the surface in pixels
     */
     override
-    uint width() { return width_; }
+    uint getWidthPx() { return width_; }
     
     /**
         Gets the Height of the surface in pixels
     */
     override
-    uint height() { return height_; }
+    uint getHeightPx() { return height_; }
 
     /**
         Gets the horizontal DPI scale of the surface

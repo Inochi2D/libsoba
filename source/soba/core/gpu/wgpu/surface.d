@@ -118,6 +118,12 @@ protected:
     WGPUTextureFormat swapchainFormat;
 
 public:
+
+    ~this() {
+        wgpuSwapChainDrop(swapchain);
+        wgpuSurfaceDrop(surface);
+    }
+
     this(SbGPUContext context, SbGPUCreationTargetI target) {
         super(context, target);
         this.context = cast(SbWGPUContext)context;
@@ -142,13 +148,13 @@ public:
         Gets the width of the surface in pixels
     */
     override
-    uint width() { return width_; }
+    uint getWidthPx() { return width_; }
     
     /**
         Gets the Height of the surface in pixels
     */
     override
-    uint height() { return height_; }
+    uint getHeightPx() { return height_; }
 
     /**
         Gets the horizontal DPI scale of the surface
@@ -192,7 +198,8 @@ public:
     /**
         Rebuilds the swapchain
     */
-    override void rebuildSwapchain() {
+    override 
+    void rebuildSwapchain() {
         this.createSwapchain();
     }
 
@@ -211,5 +218,12 @@ public:
     override
     void present() {
         wgpuSwapChainPresent(swapchain);
+    }
+
+    /**
+        Gets the next texture view associated with this swapchain
+    */
+    WGPUTextureView getNextTexture() {
+        return wgpuSwapChainGetCurrentTextureView(swapchain);
     }
 }

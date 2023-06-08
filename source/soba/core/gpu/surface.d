@@ -26,12 +26,12 @@ public:
     /**
         Gets the width of the surface in pixels
     */
-    abstract uint width();
+    abstract uint getWidthPx();
     
     /**
         Gets the Height of the surface in pixels
     */
-    abstract uint height();
+    abstract uint getHeightPx();
 
     /**
         Gets the horizontal DPI scale of the surface
