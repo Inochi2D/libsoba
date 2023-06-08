@@ -1,3 +1,11 @@
+/*
+    Copyright © 2023, Inochi2D Project
+    Distributed under the 2-Clause BSD License, see LICENSE file.
+    
+    Authors: Luna Nielsen
+
+    Window Surfaces
+*/
 module soba.core.gpu.surface;
 import soba.core.gpu;
 import bindbc.sdl;
@@ -9,10 +17,11 @@ abstract class SbGPUSurface {
 protected:
     SbGPUCreationTargetI target;
 
-public:
     this(SbGPUContext context, SbGPUCreationTargetI target) {
         this.target = target;
     }
+    
+public:
 
     /**
         Gets the width of the surface in pixels
