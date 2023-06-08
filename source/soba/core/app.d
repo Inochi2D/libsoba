@@ -73,8 +73,6 @@ class SbApp {
 private:
     SbApplicationWindow mainwindow;
     SbWindow[] windows;
-    SbWidget[] continuousWidgets;
-
 
     void eventLoop() {
         SDL_Event ev;
@@ -95,9 +93,9 @@ private:
                 }
             }
 
-            // Widgets slated for continuous updates
-            foreach(widget; continuousWidgets) {
-                widget.onUpdate();
+            mainwindow.onUpdate();
+            foreach(window; windows) {
+                window.onUpdate();
             }
         }
     }
