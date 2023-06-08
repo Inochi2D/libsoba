@@ -89,7 +89,7 @@ public:
 
         // TODO: add vector rendering context
         foreach(child; children) {
-            child.onRender(drawing);
+            if (child.getShown()) child.onRender(drawing);
         }
     }
 
@@ -98,43 +98,16 @@ public:
     */
     void onUpdate() {
         foreach(child; children) {
-            child.onUpdate();
+            if (child.getShown()) child.onUpdate();
         }
     }
 
     /**
-        Invoked when a mouse button event is recieved
+        Called when any event is invoked.
     */
-    void onMouseButtonEvent(SDL_MouseButtonEvent ev) {
+    void onEvent(SDL_Event event) {
         foreach(child; children) {
-            child.onMouseButtonEvent(ev);
-        }
-    }
-    
-    /**
-        Invoked when a mouse motion event is recieved
-    */
-    void onMouseMotionEvent(SDL_MouseMotionEvent ev) {
-        foreach(child; children) {
-            child.onMouseMotionEvent(ev);
-        }
-    }
-
-    /**
-        Invoked when a touch event is recieved
-    */
-    void onTouchEvent(SDL_TouchFingerEvent ev) {
-        foreach(child; children) {
-            child.onTouchEvent(ev);
-        }
-    }
-
-    /**
-        Invoked when a keyboard event is received
-    */
-    void onKeyboardEvent(SDL_KeyboardEvent ev) {
-        foreach(child; children) {
-            child.onKeyboardEvent(ev);
+            child.onEvent(event);
         }
     }
 
