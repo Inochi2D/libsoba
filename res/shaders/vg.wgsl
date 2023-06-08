@@ -11,9 +11,6 @@
 // Vertex Part
 //
 
-@group(0) @binding(0)
-var<uniform> viewSize: vec2<f32>;
-
 struct vtxin {
     @location(0) position: vec2<f32>,
     @location(1) uvs: vec2<f32>,

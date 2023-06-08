@@ -7,8 +7,6 @@
     Ported and adapted from NanoVG
 */
 #version 330
-uniform vec2 viewSize;
-
 layout(location = 0) in vec2 posIn;
 layout(location = 1) in vec2 uvIn;
 
