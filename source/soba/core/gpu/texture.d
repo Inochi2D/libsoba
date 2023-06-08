@@ -65,8 +65,49 @@ enum SbGPUTextureFormat {
 */
 abstract class SbGPUTexture {
 public:
+
+    /**
+        Gets the texture width in pixels
+    */
     abstract uint getWidthPx();
+    
+    /**
+        Gets the texture height in pixels
+    */
     abstract uint getHeightPx();
+    
+    /**
+        Sets the texture sub-data
+    */
     abstract void setSubData(ref IFImage data, int x, int y, int width, int height);
+
+    /**
+        Sets the texture data
+    */
     abstract void setData(ref IFImage data);
+
+    /**
+        Sets the wrapping mode of the texture
+    */
+    abstract SbGPUTexture setWrapping(SbGPUTextureWrapMode u, SbGPUTextureWrapMode v);
+
+    /**
+        Sets the anisotropy level
+    */
+    abstract SbGPUTexture setAnisotropy(ushort anisotropy=1);
+
+    /**
+        Sets the minifcation filter
+    */
+    abstract SbGPUTexture setMinFilter(SbGPUTextureFilter filter);
+
+    /**
+        Sets the magnification filter
+    */
+    abstract SbGPUTexture setMagFilter(SbGPUTextureFilter filter);
+    
+    /**
+        Returns the format of this texture
+    */
+    abstract SbGPUTextureFormat getFormat();
 }

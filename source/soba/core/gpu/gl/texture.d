@@ -53,6 +53,32 @@ private:
         }
     }
 
+    GLint wrapModeToGL(SbGPUTextureWrapMode mode) {
+        switch(mode) {
+            case SbGPUTextureWrapMode.ClampToEdge:
+                return GL_CLAMP_TO_EDGE;
+            case SbGPUTextureWrapMode.Repeat:
+                return GL_REPEAT;
+            case SbGPUTextureWrapMode.MirroredRepeat:
+                return GL_MIRRORED_REPEAT;
+            default: assert(0, "WrapMode not implemented! This is a bug.");
+        }
+    }
+
+    GLint filterModeToGL(SbGPUTextureFilter mode) {
+        switch(mode) {
+            case (SbGPUTextureFilter.Linear | SbGPUTextureFilter.Mipmapped):
+                return GL_LINEAR_MIPMAP_LINEAR;
+            case (SbGPUTextureFilter.Nearest | SbGPUTextureFilter.Mipmapped):
+                return GL_NEAREST_MIPMAP_LINEAR;
+            case SbGPUTextureFilter.Linear:
+                return GL_LINEAR;
+            case SbGPUTextureFilter.Nearest:
+                return GL_NEAREST;
+            default: assert(0, "WrapMode not implemented! This is a bug.");
+        }
+    }
+
 public:
 
     /// Constructor
@@ -120,5 +146,54 @@ public:
                 break;
             default: break;
         }
+    }
+
+    /**
+        Sets the wrapping mode of the texture
+    */
+    override
+    SbGPUTexture setWrapping(SbGPUTextureWrapMode u, SbGPUTextureWrapMode v) {
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapModeToGL(u));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapModeToGL(v));
+        return this;
+    }
+
+    /**
+        Sets the anisotropy level
+    */
+    override
+    SbGPUTexture setAnisotropy(ushort anisotropy=1) {
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, anisotropy);
+        return this;
+    }
+
+    /**
+        Sets the minifcation filter
+    */
+    override
+    SbGPUTexture setMinFilter(SbGPUTextureFilter filter) {
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filterModeToGL(filter));
+        return this;
+    }
+
+    /**
+        Sets the magnification filter
+    */
+    override
+    SbGPUTexture setMagFilter(SbGPUTextureFilter filter) {
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filterModeToGL(filter));
+        return this;
+    }
+
+    /**
+        Returns the format of this texture
+    */
+    override
+    SbGPUTextureFormat getFormat() {
+        return format;
     }
 }

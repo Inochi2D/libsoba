@@ -257,6 +257,7 @@ public:
     /**
         Sets the wrapping mode of the texture
     */
+    override
     SbGPUTexture setWrapping(SbGPUTextureWrapMode u, SbGPUTextureWrapMode v) {
         this.uwrap = u;
         this.vwrap = v;
@@ -267,6 +268,7 @@ public:
     /**
         Sets the anisotropy level
     */
+    override
     SbGPUTexture setAnisotropy(ushort anisotropy=1) {
         this.anisotropy = anisotropy;
         stateChanged = true;
@@ -276,6 +278,7 @@ public:
     /**
         Sets the minifcation filter
     */
+    override
     SbGPUTexture setMinFilter(SbGPUTextureFilter filter) {
         this.minfilter = filter;
         stateChanged = true;
@@ -285,10 +288,19 @@ public:
     /**
         Sets the magnification filter
     */
+    override
     SbGPUTexture setMagFilter(SbGPUTextureFilter filter) {
         this.magfilter = filter;
         stateChanged = true;
         return this;
+    }
+
+    /**
+        Returns the format of this texture
+    */
+    override
+    SbGPUTextureFormat getFormat() {
+        return sbformat;
     }
 
     /**
@@ -301,7 +313,7 @@ public:
     /**
         Gets the native underlying WGPU format
     */
-    WGPUTextureFormat getFormat() {
+    WGPUTextureFormat getWGPUFormat() {
         return format;
     }
 
