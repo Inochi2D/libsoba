@@ -7,7 +7,9 @@
     Textures
 */
 module soba.core.gpu.gl.texture;
+import soba.core.gpu.gl.target;
 import soba.core.gpu.gl;
+import soba.core.gpu.target;
 import soba.core.gpu;
 import soba.core.gpu.texture;
 import bindbc.opengl;
@@ -195,5 +197,20 @@ public:
     override
     SbGPUTextureFormat getFormat() {
         return format;
+    }
+
+    /**
+        Gets a render target from the texture
+    */
+    override
+    SbGPURenderTarget toRenderTarget() {
+        return new SbGLRenderTarget(context, this);
+    }
+
+    /**
+        Gets the ID of the texture
+    */
+    GLuint getId() {
+        return id;
     }
 }

@@ -1,6 +1,8 @@
 module soba.core.gpu.gl.surface;
+import soba.core.gpu.gl.target;
 import soba.core.gpu.gl;
 import soba.core.gpu.surface;
+import soba.core.gpu.target;
 import soba.core.gpu;
 import bindbc.opengl;
 import bindbc.sdl;
@@ -110,5 +112,13 @@ public:
     override
     void present() {
         SDL_GL_SwapWindow(target.getHandle());
+    }
+
+    /**
+        Gets a render target from the surface
+    */
+    override
+    SbGPURenderTarget toRenderTarget() {
+        return new SbGLRenderTarget(context, this);
     }
 }

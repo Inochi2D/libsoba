@@ -10,10 +10,12 @@ module soba.core.gpu.wgpu.texture;
 import soba.core.gpu.wgpu;
 import soba.core.gpu;
 import soba.core.gpu.texture;
+import soba.core.gpu.target;
 import bindbc.wgpu;
 import imagefmt;
 import std.exception;
 import inmath;
+import soba.core.gpu.wgpu.target;
 
 /**
     A 2D texture
@@ -124,6 +126,13 @@ private:
     }
 
 public:
+
+    /// Destructor
+    ~this() {
+        wgpuSamplerDrop(sampler);
+        wgpuTextureViewDrop(view);
+        wgpuTextureDrop(texture);
+    }
 
     /// Constructor
     this(SbGPUContext context, int width, int height, SbGPUTextureFormat format) {
@@ -328,6 +337,14 @@ public:
             stateChanged = false;
         }
         return sampler;
+    }
+
+    /**
+        Gets a render target from the texture
+    */
+    override
+    SbGPURenderTarget toRenderTarget() {
+        return new SbWGPURenderTarget(context, this);
     }
     
 }

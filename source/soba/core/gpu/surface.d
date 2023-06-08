@@ -8,6 +8,7 @@
 */
 module soba.core.gpu.surface;
 import soba.core.gpu;
+import soba.core.gpu.target;
 import bindbc.sdl;
 
 /**
@@ -72,4 +73,9 @@ public:
         Presents the surface
     */
     abstract void present();
+
+    /**
+        Gets a render target from the surface
+    */
+    abstract SbGPURenderTarget toRenderTarget();
 }
