@@ -16,6 +16,7 @@ import soba.core.gpu.gl;
 import imagefmt;
 import soba.core.gpu.buffer;
 import soba.core.gpu.shader;
+import soba.core.gpu.command;
 
 private {
     __gshared SbGPUContextType sbGlobalContextType;
@@ -172,6 +173,11 @@ public:
         Creates a new shader object with the specified variants.
     */
     abstract SbGPUShaderObject createShader(SbGPUShaderCodeVariant[] variants);
+
+    /**
+        Creates a new command buffer
+    */
+    abstract SbGPUCommandBuffer createCommandBuffer();
 }
 
 /**

@@ -37,6 +37,11 @@ private:
     
 public:
 
+    /// Destructor
+    ~this() {
+        wgpuBufferDrop(buffer);
+    }
+
     /**
         Creates a buffer with no data but a preallocated size
     */

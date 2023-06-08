@@ -1,6 +1,8 @@
 module soba.core.gpu.wgpu.surface;
+import soba.core.gpu.wgpu.target;
 import soba.core.gpu.wgpu;
 import soba.core.gpu.surface;
+import soba.core.gpu.target;
 import soba.core.gpu;
 import bindbc.wgpu;
 import bindbc.sdl;
@@ -218,6 +220,14 @@ public:
     override
     void present() {
         wgpuSwapChainPresent(swapchain);
+    }
+
+    /**
+        Gets a render target from the surface
+    */
+    override
+    SbGPURenderTarget toRenderTarget() {
+        return new SbWGPURenderTarget(context, this);
     }
 
     /**

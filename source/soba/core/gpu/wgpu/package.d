@@ -89,6 +89,11 @@ protected:
     WGPUQueue queue;
 
 public:
+    ~this() {
+        wgpuDeviceDrop(device);
+        wgpuAdapterDrop(adapter);
+    }
+
     this() { }
 
     /**

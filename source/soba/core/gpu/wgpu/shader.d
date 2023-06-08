@@ -63,6 +63,12 @@ private:
     }
 
 public:
+    /// Destructor
+    ~this() {
+        wgpuShaderModuleDrop(shader);
+    }
+
+    /// Constructor
     this(SbWGPUContext context, SbGPUShaderCodeVariant[] variants) {
         this.context = context;
 

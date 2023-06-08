@@ -9,6 +9,7 @@
 module soba.core.gpu.texture;
 
 import imagefmt;
+import soba.core.gpu.target;
 
 enum SbGPUTextureWrapMode {
     Repeat,
@@ -110,4 +111,9 @@ public:
         Returns the format of this texture
     */
     abstract SbGPUTextureFormat getFormat();
+
+    /**
+        Gets a render target from the texture
+    */
+    abstract SbGPURenderTarget toRenderTarget();
 }
