@@ -14,6 +14,7 @@ import soba.core.gpu.texture;
 import soba.core.gpu.wgpu;
 import soba.core.gpu.gl;
 import imagefmt;
+import soba.core.gpu.buffer;
 
 private {
     __gshared SbGPUContextType sbGlobalContextType;
@@ -135,6 +136,36 @@ public:
         Creates a new texture
     */
     abstract SbGPUTexture createTexture(ubyte[] data, int width, int height, SbGPUTextureFormat format);
+
+    /**
+        Creates a new index buffer
+    */
+    abstract SbGPUBuffer createIndexBuffer(size_t size);
+
+    /**
+        Creates a new index buffer
+    */
+    abstract SbGPUBuffer createIndexBuffer(void* initialData, size_t length);
+
+    /**
+        Creates a new vertex buffer
+    */
+    abstract SbGPUBuffer createVertexBuffer(size_t size);
+
+    /**
+        Creates a new vertex buffer
+    */
+    abstract SbGPUBuffer createVertexBuffer(void* initialData, size_t length);
+
+    /**
+        Creates a new uniform buffer
+    */
+    abstract SbGPUBuffer createUniformBuffer(size_t size);
+
+    /**
+        Creates a new uniform buffer
+    */
+    abstract SbGPUBuffer createUniformBuffer(void* initialData, size_t length);
 }
 
 /**

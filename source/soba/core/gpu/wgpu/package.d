@@ -2,12 +2,14 @@ module soba.core.gpu.wgpu;
 import soba.core.gpu;
 import soba.core.gpu.surface;
 import soba.core.gpu.texture;
+import soba.core.gpu.buffer;
 import soba.core.gpu.wgpu.surface;
 import bindbc.wgpu;
 import bindbc.sdl;
 import std.exception;
 import imagefmt;
 import soba.core.gpu.wgpu.texture;
+import soba.core.gpu.wgpu.buffer;
 
 
 private {
@@ -166,6 +168,54 @@ public:
     override
     SbGPUTexture createTexture(ubyte[] data, int width, int height, SbGPUTextureFormat format) {
         return new SbWGPUTexture(this, data, width, height, format);
+    }
+    
+    /**
+        Creates a new index buffer
+    */
+    override
+    SbGPUBuffer createIndexBuffer(size_t size) {
+        return new SbWGPUBuffer(this, SbGPUBufferType.Index, size);
+    }
+
+    /**
+        Creates a new index buffer
+    */
+    override
+    SbGPUBuffer createIndexBuffer(void* initialData, size_t length) {
+        return new SbWGPUBuffer(this, SbGPUBufferType.Index, initialData, length);
+    }
+
+    /**
+        Creates a new vertex buffer
+    */
+    override
+    SbGPUBuffer createVertexBuffer(size_t size) {
+        return new SbWGPUBuffer(this, SbGPUBufferType.Vertex, size);
+    }
+
+    /**
+        Creates a new vertex buffer
+    */
+    override
+    SbGPUBuffer createVertexBuffer(void* initialData, size_t length) {
+        return new SbWGPUBuffer(this, SbGPUBufferType.Vertex, initialData, length);
+    }
+
+    /**
+        Creates a new uniform buffer
+    */
+    override
+    SbGPUBuffer createUniformBuffer(size_t size) {
+        return new SbWGPUBuffer(this, SbGPUBufferType.Uniform, size);
+    }
+
+    /**
+        Creates a new uniform buffer
+    */
+    override
+    SbGPUBuffer createUniformBuffer(void* initialData, size_t length) {
+        return new SbWGPUBuffer(this, SbGPUBufferType.Uniform, initialData, length);
     }
 }
 
