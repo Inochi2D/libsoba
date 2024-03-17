@@ -1,8 +1,10 @@
 module soba.drawing.contexts.cairo;
 import soba.drawing.contexts;
+import soba.drawing.common;
 import cairo;
 import std.math;
 import numem.all;
+import inmath;
 
 class SbCairoContext : SbDrawingContext {
 nothrow @nogc:
@@ -13,6 +15,17 @@ private:
 
     float brTL, brTR, brBL, brBR;
 
+    final cairo_format_t toCairoSurfaceFormat() {
+        final switch(format) {
+            case SbSurfaceFormat.ARGB:
+            case SbSurfaceFormat.ARGB_HDR:
+                return cairo_format_t.CAIRO_FORMAT_ARGB32;
+            case SbSurfaceFormat.RGB:
+            case SbSurfaceFormat.RGB_HDR:
+                return cairo_format_t.CAIRO_FORMAT_RGB24;
+        }
+    }
+
 public:
     ~this() {
         cairo_destroy(cairo);
@@ -22,9 +35,9 @@ public:
             cairo_pattern_destroy(pattern);
     }
 
-    this(size_t width, size_t height) {
-        super(width, height);
-        surface = cairo_image_surface_create(cairo_format_t.CAIRO_FORMAT_RGB24, cast(int)width, cast(int)height);
+    this(SbSurfaceFormat format, size_t width, size_t height) {
+        super(format, width, height);
+        surface = cairo_image_surface_create(toCairoSurfaceFormat(), cast(int)width, cast(int)height);
         cairo = cairo_create(surface);
 
         this.dst = cairo_image_surface_get_data(surface);
@@ -36,7 +49,7 @@ public:
         int oldHeight = cast(int)this.height;
         super.resize(width, height);
 
-        cairo_surface_t* newSurface = cairo_image_surface_create(cairo_format_t.CAIRO_FORMAT_RGB24, cast(int)width, cast(int)height);
+        cairo_surface_t* newSurface = cairo_image_surface_create(toCairoSurfaceFormat(), cast(int)width, cast(int)height);
         cairo_t* newCairo = cairo_create(newSurface);
 
         cairo_set_source_surface(newCairo, surface, 0, 0);
@@ -51,6 +64,17 @@ public:
 
         cairo_surface_set_device_scale(surface, this.scale, this.scale);
         this.dst = cairo_image_surface_get_data(surface);
+    }
+
+    override
+    size_t getStride() {
+        return cairo_format_stride_for_width(toCairoSurfaceFormat(), cast(int)width);
+    }
+
+    override
+    ubyte* getBufferHandle() {
+        cairo_surface_flush(surface);
+        return super.getBufferHandle();
     }
 
     override
@@ -90,7 +114,7 @@ public:
     }
 
     override
-    void setGradientLinear(float[4][] stops, float x0, float y0, float x1, float y1) {
+    void setGradientLinear(SbGradientStop[] stops, float x0, float y0, float x1, float y1) {
         
         // Handle refcount
         if (pattern) {
@@ -99,16 +123,15 @@ public:
         }
 
         pattern = cairo_pattern_create_linear(x0, y0, x1, y1);
-        foreach(i, stop; stops) {
-            float stopIdx = cast(float)i/cast(float)(stops.length-1);
-            cairo_pattern_add_color_stop_rgba(pattern, stopIdx, stop[0], stop[1], stop[2], stop[3]);
+        foreach(i, ref stop; stops) {
+            cairo_pattern_add_color_stop_rgba(pattern, stop.stop, stop.color.x, stop.color.y, stop.color.z, stop.color.w);
         }
 
         cairo_set_source(cairo, pattern);
     }
 
     override
-    void setGradientRadial(float[4][] stops, float x, float y, float radius) {
+    void setGradientRadial(SbGradientStop[] stops, float x, float y, float radius) {
         
         // Handle refcount
         if (pattern) {
@@ -117,9 +140,8 @@ public:
         }
 
         pattern = cairo_pattern_create_radial(x, y, 0, x, y, radius);
-        foreach(i, stop; stops) {
-            float stopIdx = cast(float)i/cast(float)(stops.length-1);
-            cairo_pattern_add_color_stop_rgba(pattern, stopIdx, stop[0], stop[1], stop[2], stop[3]);
+        foreach(i, ref stop; stops) {
+            cairo_pattern_add_color_stop_rgba(pattern, stop.stop, stop.color.x, stop.color.y, stop.color.z, stop.color.w);
         }
 
         cairo_set_source(cairo, pattern);
@@ -176,6 +198,15 @@ public:
     }
 
     override
+    void measureText(nstring text, out float w, out float h) {
+        cairo_text_extents_t extents;
+        cairo_text_extents(cairo, text.toCString(), &extents);
+
+        w = extents.width;
+        h = extents.height;
+    }
+
+    override
     void startPath(float x, float y) {
         cairo_move_to(cairo, x, y);
         cairo_new_sub_path(cairo);
@@ -204,6 +235,37 @@ public:
     override
     void fillPreserve() {
         cairo_fill_preserve(cairo);
+    }
+
+    override
+    void clipRectangle(float x, float y, float width, float height) {
+        this.rectangle(x, y, width, height);
+        this.clip();
+    }
+
+    override
+    void clip() {
+        cairo_clip(cairo);
+    }
+
+    override
+    void clipPreserve() {
+        cairo_clip_preserve(cairo);
+    }
+
+    override
+    void resetClip() {
+        cairo_reset_clip(cairo);
+    }
+
+    override
+    void save() {
+        cairo_save(cairo);
+    }
+
+    override
+    void restore() {
+        cairo_restore(cairo);
     }
 
     override

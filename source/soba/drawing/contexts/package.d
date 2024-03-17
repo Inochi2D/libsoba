@@ -1,6 +1,8 @@
 module soba.drawing.contexts;
+import soba.drawing.common;
 import cairo;
 import numem.all;
+import inmath;
 
 enum SbLineCap {
     Square,
@@ -14,6 +16,11 @@ enum SbLineJoin {
     Round
 }
 
+struct SbGradientStop {
+    float stop;
+    vec4 color;
+}
+
 abstract
 class SbDrawingContext {
 nothrow @nogc:
@@ -22,13 +29,15 @@ protected:
     size_t width;
     size_t height;
     float scale;
+    SbSurfaceFormat format;
 
 public:
 
     /**
         Instantiates the buffer
     */
-    this(size_t width, size_t height) {
+    this(SbSurfaceFormat format, size_t width, size_t height) {
+        this.format = format;
         this.width = width;
         this.height = height;
         this.scale = 1;
@@ -71,6 +80,11 @@ public:
     }
 
     /**
+        Gets the stride of the underlying buffer
+    */
+    abstract size_t getStride();
+
+    /**
         Draws a rectangle path
     */
     abstract void rectangle(float x, float y, float width, float height);
@@ -93,12 +107,12 @@ public:
     /**
         Sets a linear gradient as the current rendering style
     */
-    abstract void setGradientLinear(float[4][] stops, float x0, float y0, float x1, float y1);
+    abstract void setGradientLinear(SbGradientStop[] stops, float x0, float y0, float x1, float y1);
 
     /**
         Sets a radial gradient as the current rendering style
     */
-    abstract void setGradientRadial(float[4][] stops, float x, float y, float radius);
+    abstract void setGradientRadial(SbGradientStop[] stops, float x, float y, float radius);
 
     /**
         Sets the width of a stroke
@@ -141,6 +155,11 @@ public:
     abstract void fill();
 
     /**
+        Clips with the current shape
+    */
+    abstract void clip();
+
+    /**
         Strokes the path without removing it
     */
     abstract void strokePreserve();
@@ -151,9 +170,39 @@ public:
     abstract void fillPreserve();
 
     /**
+        Clips with the current path without removing it
+    */
+    abstract void clipPreserve();
+
+    /**
         Draws a string of text
     */
     abstract void drawText(nstring text, float x, float y);
+
+    /**
+        Measures a string of text
+    */
+    abstract void measureText(nstring text, out float w, out float h);
+
+    /**
+        Sets clip rectangle
+    */
+    abstract void clipRectangle(float x, float y, float width, float height);
+
+    /**
+        Resets the clipping state
+    */
+    abstract void resetClip();
+
+    /**
+        Saves the current state
+    */
+    abstract void save();
+
+    /**
+        Restores state from a saved state
+    */
+    abstract void restore();
 
     /**
         Saves the content of the drawing context to a PNG
@@ -161,10 +210,12 @@ public:
     abstract void saveToPNG(nstring path);
 }
 
+nothrow @nogc:
+
 /**
     Creates a new drawing context as a shared pointer
 */
-shared_ptr!SbDrawingContext createContext(size_t width, size_t height) {
+shared_ptr!SbDrawingContext createContext(SbSurfaceFormat format, size_t width, size_t height) {
     import soba.drawing.contexts.cairo : SbCairoContext;
-    return shared_ptr!SbDrawingContext.fromPtr(nogc_new!SbCairoContext(width, height));
+    return shared_ptr!SbDrawingContext.fromPtr(nogc_new!SbCairoContext(format, width, height));
 }

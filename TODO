@@ -2,3 +2,5 @@ SbDrawingContext
  * Add SbCairoContext
  * Add SVG support
  * Vector animation support?
+ * Optimise surfaces by only uploading dirty rects
+ * Clean up prototype mess by making SbBackingWindow refer to the SbWindow that owns it.

@@ -13,6 +13,7 @@ soba-test-*
 *.o
 *.obj
 *.lst
+.DS_Store
 
 out/
 dub.selections.json
