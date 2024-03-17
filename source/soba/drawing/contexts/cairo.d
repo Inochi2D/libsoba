@@ -1,5 +1,5 @@
-module soba.drawing.cairo;
-import soba.drawing;
+module soba.drawing.contexts.cairo;
+import soba.drawing.contexts;
 import cairo;
 import std.math;
 import numem.all;
@@ -136,10 +136,13 @@ public:
         final switch(cap) {
             case SbLineCap.Butt:
                 ccap = cairo_line_cap_t.CAIRO_LINE_CAP_BUTT;
+                break;
             case SbLineCap.Round:
                 ccap = cairo_line_cap_t.CAIRO_LINE_CAP_ROUND;
+                break;
             case SbLineCap.Square:
                 ccap = cairo_line_cap_t.CAIRO_LINE_CAP_SQUARE;
+                break;
         }
         cairo_set_line_cap(cairo, ccap);
     }
@@ -150,10 +153,13 @@ public:
         final switch(join) {
             case SbLineJoin.Bevel:
                 cjoin = cairo_line_join_t.CAIRO_LINE_JOIN_BEVEL;
+                break;
             case SbLineJoin.Round:
                 cjoin = cairo_line_join_t.CAIRO_LINE_JOIN_MITER;
+                break;
             case SbLineJoin.Miter:
                 cjoin = cairo_line_join_t.CAIRO_LINE_JOIN_ROUND;
+                break;
         }
         cairo_set_line_join(cairo, cjoin);
     }
@@ -171,7 +177,7 @@ public:
 
     override
     void startPath(float x, float y) {
-        cairo_move_to(x, y);
+        cairo_move_to(cairo, x, y);
         cairo_new_sub_path(cairo);
     }
 
