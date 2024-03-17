@@ -14,6 +14,14 @@ private:
     float brTL, brTR, brBL, brBR;
 
 public:
+    ~this() {
+        cairo_destroy(cairo);
+        cairo_surface_destroy(surface);
+
+        if (pattern)
+            cairo_pattern_destroy(pattern);
+    }
+
     this(size_t width, size_t height) {
         super(width, height);
         surface = cairo_image_surface_create(cairo_format_t.CAIRO_FORMAT_RGB24, cast(int)width, cast(int)height);
@@ -124,12 +132,30 @@ public:
 
     override
     void setLineCap(SbLineCap cap) {
-        
+        cairo_line_cap_t ccap;
+        final switch(cap) {
+            case SbLineCap.Butt:
+                ccap = cairo_line_cap_t.CAIRO_LINE_CAP_BUTT;
+            case SbLineCap.Round:
+                ccap = cairo_line_cap_t.CAIRO_LINE_CAP_ROUND;
+            case SbLineCap.Square:
+                ccap = cairo_line_cap_t.CAIRO_LINE_CAP_SQUARE;
+        }
+        cairo_set_line_cap(cairo, ccap);
     }
 
     override
     void setLineJoin(SbLineJoin join) {
-        
+        cairo_line_join_t cjoin;
+        final switch(join) {
+            case SbLineJoin.Bevel:
+                cjoin = cairo_line_join_t.CAIRO_LINE_JOIN_BEVEL;
+            case SbLineJoin.Round:
+                cjoin = cairo_line_join_t.CAIRO_LINE_JOIN_MITER;
+            case SbLineJoin.Miter:
+                cjoin = cairo_line_join_t.CAIRO_LINE_JOIN_ROUND;
+        }
+        cairo_set_line_join(cairo, cjoin);
     }
 
     override
@@ -145,6 +171,7 @@ public:
 
     override
     void startPath(float x, float y) {
+        cairo_move_to(x, y);
         cairo_new_sub_path(cairo);
     }
 
