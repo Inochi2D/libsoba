@@ -8,7 +8,7 @@
 */
 module soba;
 import bindbc.sdl;
-import bindbc.wgpu;
+import cairo;
 import std.exception;
 
 public import soba.core;
@@ -21,9 +21,12 @@ public import soba.core;
         If dependencies are too old
 */
 void sbInit() {
-    auto sdlSupport = loadSDL();
-    enforce(sdlSupport != SDLSupport.noLibrary, "SDL2 was not found!");
-    enforce(sdlSupport >= SDLSupport.v2_26, "SDL2 is too old, 2.26 or newer is expected!");
+    // auto sdlSupport = loadSDL();
+    // enforce(sdlSupport != SDLSupport.noLibrary, "SDL2 was not found!");
+    // enforce(sdlSupport >= SDLSupport.v2_26, "SDL2 is too old, 2.26 or newer is expected!");
 
-    SDL_Init(SDL_INIT_EVERYTHING);
+    // SDL_Init(SDL_INIT_EVERYTHING);
+
+    auto cairoSupport = loadCairo();
+    enforce(cairoSupport != cairoSupport.noLibrary, "Cairo not found!");
 }

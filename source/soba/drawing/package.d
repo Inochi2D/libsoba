@@ -1,94 +1,162 @@
-/*
-    Copyright © 2023, Inochi2D Project
-    Distributed under the 2-Clause BSD License, see LICENSE file.
-    
-    Authors: Luna Nielsen
-    
-    Drawing routines for UI rendering
-*/
 module soba.drawing;
-// import soba.core.gpu;
+import cairo;
+import numem.all;
 
-// import bindbc.wgpu;
-// import inmath;
+enum SbLineCap {
+    Square,
+    Round,
+    Butt
+}
 
-// private {
-//     struct SbDrawVert {
-//         vec2 position;
-//         vec2 uv;
-//         vec4 color;
-//     }
+enum SbLineJoin {
+    Miter,
+    Bevel,
+    Round
+}
 
-//     enum SbPathMode {
-//         Line,
-//         Filled
-//     }
-
-//     struct SbDrawPath {
-//         SbPathMode mode;
-//         rect clipRect;
-//         uint pathStart;
-//         uint pathLength;
-//         SbGFXTextureView texture;
-//     }
-
-//     struct SbDrawCtx {
-//         // Base Primitives
-//         SbDrawVert[ushort.max]   verts;
-//         ushort    [ushort.max]   idxs;
-//         SbDrawPath[ushort.max]   paths;
-//         size_t pathOffset;
-//         size_t vertOffset;
-//         size_t idxOffset;
-        
-//         // Buffers
-//         // SbGFXBuffer!SbDrawVert vtxBuffer;
-//         // SbGFXBuffer!uint idxBuffer;
-//         SbGFXPipeline filledTexture;
-//         SbGFXPipeline line;
-//         SbGFXPipeline filedShape;
-
-//         void addPathSegment(vec2 position, vec4 color, vec2 uv = vec2.init) {
-//             verts[vertOffset++] = SbDrawVert(
-//                 position,
-//                 uv,
-//                 color
-//             );
-//         }
-
-
-//         void render(ref SbGFXEncoder encoder, ref SbGFXSurface surface) {
-//             encoder.beginFrame();
-//             encoder.begin([surface], false, true);
-
-//                 // Bind our buffers
-//                 // encoder.setVertexBuffer(vtxBuffer);
-//                 // encoder.setIndexBuffer(idxBuffer);
-
-//                 // Iterate every path
-//                 foreach(pid; 0..pathOffset) {
-                    
-//                     // Switch rendering pipeline based on rendering parameters
-//                     // if (path.texture) encoder.setPipeline(filledTexture);
-//                     // else {
-//                     //     if (path.mode == SbPathMode.Line) encoder.setPipeline(line);
-//                     //     else encoder.setPipeline(filedShape);
-//                     // }
-
-//                     auto path = paths[pid];
-//                     encoder.setScissor(path.clipRect);
-//                     encoder.drawIndexed(path.pathLength, 1, path.pathStart);
-//                 }
-//             encoder.end();
-//             encoder.endFrame();
-//         }
-        
-//     }
-// }
-
-/**
-    Vector drawing context
-*/
+abstract
 class SbDrawingContext {
+nothrow @nogc:
+protected:
+    ubyte* dst;
+    size_t width;
+    size_t height;
+    float scale;
 
+public:
+
+    /**
+        Instantiates the buffer
+    */
+    this(size_t width, size_t height) {
+        this.width = width;
+        this.height = height;
+        this.scale = 1;
+    }
+
+    /**
+        Resizes the canvas of the drawing context
+    */
+    void resize(size_t width, size_t height) {
+        this.width = width;
+        this.height = height;
+    }
+
+    /**
+        Sets the rendering scale
+    */
+    void setScale(float scale) {
+        this.scale = scale;
+    }
+
+    /**
+        Gets the width of the drawing context canvas.
+    */
+    size_t getWidth() {
+        return width;
+    }
+
+    /**
+        Gets the width of the drawing context canvas.
+    */
+    size_t getHeight() {
+        return height;
+    }
+
+    /**
+        Gets a handle to the color buffer
+    */
+    ubyte* getBufferHandle() {
+        return dst;
+    }
+
+    /**
+        Draws a rectangle path
+    */
+    abstract void rectangle(float x, float y, float width, float height);
+
+    /**
+        Draws a rounded rectangle path
+    */
+    abstract void rectangleRounded(float x, float y, float width, float height);
+
+    /**
+        Sets the border radius of a rounded rectangle
+    */
+    abstract void setBorderRadius(float topLeft, float topRight, float bottomLeft, float bottomRight);
+
+    /**
+        Sets a solid color as the current rendering style
+    */
+    abstract void setColor(float r, float g, float b, float a);
+
+    /**
+        Sets a linear gradient as the current rendering style
+    */
+    abstract void setGradientLinear(float[4][] stops, float x0, float y0, float x1, float y1);
+
+    /**
+        Sets a radial gradient as the current rendering style
+    */
+    abstract void setGradientRadial(float[4][] stops, float x, float y, float radius);
+
+    /**
+        Sets the width of a stroke
+    */
+    abstract void setStrokeWidth(float width);
+
+    /**
+        Sets the stroke line cap style
+    */
+    abstract void setLineCap(SbLineCap cap);
+
+    /**
+        Sets the stroke line join cap style
+    */
+    abstract void setLineJoin(SbLineJoin join);
+
+    /**
+        Sets the font size
+    */
+    abstract void setFontSize(float size);
+
+    /**
+        Starts a path at the specified location
+    */
+    abstract void startPath(float x, float y);
+
+    /**
+        Closes the specified path
+    */
+    abstract void closePath();
+
+    /**
+        Strokes the path
+    */
+    abstract void stroke();
+
+    /**
+        Fills the path
+    */
+    abstract void fill();
+
+    /**
+        Strokes the path without removing it
+    */
+    abstract void strokePreserve();
+
+    /**
+        Fills the path without removing it
+    */
+    abstract void fillPreserve();
+
+    /**
+        Draws a string of text
+    */
+    abstract void drawText(nstring text, float x, float y);
+
+    /**
+        Saves the content of the drawing context to a PNG
+    */
+    abstract void saveToPNG(nstring path);
 }

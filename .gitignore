@@ -15,5 +15,4 @@ soba-test-*
 *.lst
 
 out/
-libs/
 dub.selections.json

@@ -1,0 +1,4 @@
+SbDrawingContext
+ * Add SbCairoContext
+ * Add SVG support
+ * Vector animation support?
