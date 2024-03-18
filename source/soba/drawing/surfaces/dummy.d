@@ -14,9 +14,4 @@ public:
     this(SbSurfaceFormat format, size_t width, size_t height, MTLDevice device) {
         super(format, width, height);
     }
-
-    final
-    void dumpToFile(nstring file) {
-        this.getContext().saveToPNG(file);
-    }
 }

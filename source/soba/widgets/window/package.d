@@ -1,7 +1,11 @@
 module soba.widgets.window;
 import soba.widgets.container;
-import numem.all;
+import soba.widgets.widget;
 import soba.core.window;
+import soba.core.math;
+import soba.core.events;
+
+import numem.all;
 
 /**
     The window style of a window, defining how the backend handles the window.
@@ -55,8 +59,10 @@ enum SbWindowFlags {
 abstract
 class SbWindow : SbContainer {
 nothrow @nogc:
-protected:
+private:
     SbBackingWindow backing;
+
+protected:
     SbWindowStyle style;
     SbWindowFlags flags;
 
@@ -67,15 +73,33 @@ protected:
     void createBackingWindow(nstring title, int x, int y, int width, int height, uint flags) {
         if (!backing) {
             backing = nogc_new!SbBackingWindow(title, x, y, width, height, flags);
+            sbSubscribeWindow(backing, this);
         }
+    }
+
+    /**
+        Destroys a backing window if one exists.
+    */
+    final
+    void destroyBackingWindow() {
+        if (backing) {
+            sbUnsubscribeWindow(backing);
+            nogc_delete(backing);
+            this.backing = null;
+        }
+    }
+
+    /**
+        Gets the SbWindow's backing window.
+    */
+    final
+    SbBackingWindow getBackingWindow() {
+        return backing;
     }
 
 public:
     ~this() {
-        if (backing) {
-            nogc_delete(backing);
-            this.backing = null;
-        }
+        this.destroyBackingWindow();
     }
 
     /**
@@ -95,9 +119,59 @@ public:
         return backing !is null;
     }
 
+    /**
+        Called when the window is resized
+    */
+    override
     void onResize(float width, float height) {
         if (backing) {
             backing.setFramebufferSize(width, height);
         }
+    }
+
+    /**
+        Called when the mouse moves within the window
+    */
+    override
+    bool onMouseMove(float x, float y) {
+        return super.onMouseMove(x, y);
+    }
+
+    /**
+        Called when the mouse clicks within the window
+    */
+    override
+    bool onMouseClicked(float x, float y, SbMouseButton button) {
+        return super.onMouseClicked(x, y, button);
+    }
+
+    /**
+        Called when the mouse double clicks within the window
+    */
+    override
+    bool onMouseDoubleClicked(float x, float y, SbMouseButton button) {
+        return super.onMouseDoubleClicked(x, y, button);
+    }
+
+    /**
+        Called when the mouse is released within the window
+    */
+    override
+    bool onMouseReleased(float x, float y, SbMouseButton button) {
+        return super.onMouseReleased(x, y, button);
+    }
+
+    override
+    recti getBounds() {
+        if (backing) {
+            vec2 fbSize = backing.getFramebufferSize();
+            return recti(0, 0, cast(int)fbSize.x, cast(int)fbSize.y);
+        }
+
+        if (SbWidget parent = this.getParent()) {
+            return parent.getBounds();
+        }
+
+        return recti.init;
     }
 }

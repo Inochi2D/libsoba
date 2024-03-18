@@ -1,15 +1,16 @@
 module soba.widgets.button;
 import soba.widgets.widget;
 import soba.drawing.contexts;
+import soba.core.math;
+import soba.core.events;
 import numem.all;
-import inmath;
 
 class SbButton : SbWidget {
 nothrow @nogc:
 private:
     bool clicked;
     bool hovered;
-    rect bounds;
+    recti bounds;
     nstring text;
 
 
@@ -35,6 +36,17 @@ protected:
                 SbGradientStop(0, vec4(0.6, 0.6, 0.6, 1)),
                 SbGradientStop(1, vec4(0.8, 0.8, 0.8, 1)),
             ];
+        } else if (hovered) {
+            outLineColor = [
+                SbGradientStop(0, vec4(0.9, 0.9, 0.9, 1)),
+                SbGradientStop(1, vec4(1.0, 1.0, 1.0, 1.0)),
+            ];
+
+            mainColor = [
+                SbGradientStop(0, vec4(1.0, 1.0, 1.0, 1.0)),
+                SbGradientStop(1, vec4(0.9, 0.9, 0.9, 1)),
+            ];
+
         } else {
             outLineColor = [
                 SbGradientStop(0, vec4(0.8, 0.8, 0.8, 1)),
@@ -64,30 +76,64 @@ protected:
     }
 
 public:
-    this(nstring text, int width, int height) {
+    this(nstring text, recti area) {
         super();
 
-        this.bounds = rect(32, 32, width, height);
+        this.bounds = area;
         this.text = text;
     }
 
     this(nstring text) {
-        this(text, 1, 1);
+        this(text, recti(0));
     }
 
-    void setBorderRadius(float radius) {
+    SbButton setBorderRadius(float radius) {
         this.borderRadius = radius;
+        return this;
     }
 
-    override void update() {
-
-    }
-
-    override rect getBounds() {
+    override
+    recti getBounds() {
         return bounds;
     }
 
-    override void setBounds(rect bounds) {
+    SbButton setBounds(recti bounds) {
         this.bounds = bounds;
+        return this;
+    }
+
+    override
+    bool onMouseMove(float x, float y) {
+        this.markDirty();
+        
+        if (this.getBounds().intersects(vec2(x, y))) {
+            hovered = true;
+        } else {
+            hovered = false;
+            clicked = false;
+        }
+
+        return true;
+    }
+
+    override
+    bool onMouseClicked(float x, float y, SbMouseButton btn) {
+        if (btn == SbMouseButton.Left) {
+            clicked = true;
+            this.markDirty();
+        }
+        return true;
+    }
+
+    override
+    bool onMouseReleased(float x, float y, SbMouseButton btn) {
+        if (btn == SbMouseButton.Left) {
+            if (clicked == true) {
+                
+            }
+            clicked = false;
+            this.markDirty();
+        }
+        return true;
     }
 }

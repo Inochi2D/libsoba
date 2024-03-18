@@ -10,12 +10,7 @@ import std.stdio;
 
 void main() {
     sbInit();
-    // shared_ptr!SbDrawingContext sctx = createContext(SbSurfaceFormat.ARGB, 640, 480);
-    // SbDrawingContext ctx = sctx.get();
 
-    // ctx.drawButton(rect(8, 8, 256, 64), nstring("Button"), true);
-    // ctx.drawButton(rect(8, 64+16, 256, 64), nstring("Button"));
-    // ctx.saveToPNG(nstring("test.png"));
     SbMainWindow window = nogc_new!SbMyWindow(SbApplication(
         nstring("My Cool App")
     ), 640, 480);
@@ -30,10 +25,14 @@ public:
     this(ref SbApplication app, int width, int height) {
         super(app, width, height);
 
-        SbButton button = nogc_new!SbButton(nstring("uwu"), 256, 64);
-        button.setBorderRadius(16);
-
-        this.addChild(button);
+        enum offset = 16;
+        foreach(i; 0..10) {
+            this.addChild(
+                nogc_new!SbButton(nstring("uwu"), recti(offset, offset+((offset*i)+(i*64)), 256, 64))
+                .setBorderRadius(16)
+                .show(),
+                SbChildPosition.Back
+            );
+        }
     }
-
 }

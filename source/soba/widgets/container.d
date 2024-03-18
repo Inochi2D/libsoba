@@ -1,8 +1,13 @@
 module soba.widgets.container;
 import soba.widgets.widget;
 import soba.drawing.contexts;
+import soba.core.math;
 import numem.all;
-import inmath;
+
+enum SbChildPosition {
+    Front,
+    Back
+}
 
 /**
     A widget that contains other widgets.
@@ -11,54 +16,49 @@ import inmath;
 abstract
 class SbContainer : SbWidget {
 nothrow @nogc:
-private:
-    weak_vector!(SbWidget) children;
-
-protected:
-    final
-    size_t addChild(SbWidget widget) {
-        children ~= widget;
-        return children.size();
-    }
-
-    /**
-        Removes a child by its offset
-    */
-    final
-    bool removeChild(size_t offset) {
-        
-        // Impossibility.
-        if (offset >= children.size()) return false;
-
-        // Remove :)
-        children.remove(offset);
-        return true;
-    }
-
-    override
-    void onDraw(ref SbDrawingContext context) {
-        foreach (child; children) {
-            if (child) {
-                child.draw(context);
-            }
-        }
-    }
-
 public:
     this() {
         super();
     }
 
+    /**
+        Adds a child widget to the container
+    */
+    void addChild(SbWidget child, SbChildPosition position) {
+        final switch(position) {
+            case SbChildPosition.Front:
+                super.addChild!true(child);
+                break;
+            case SbChildPosition.Back:
+                super.addChild!false(child);
+                break;
+        }
+    }
+
+    /**
+        Draws the container and all of its children
+    */
     override
-    void draw(ref SbDrawingContext context) {
-        context.save();
-            this.onDraw(context);
-        context.restore();
+    int draw() {
+        int acc = 0;
+
+        recti bounds = this.getBounds();
+
+        if (this.isDirty()) {
+            this.getDrawingContext().save();
+                this.getDrawingContext().clipRectangle(bounds.x, bounds.y, bounds.width, bounds.height);
+                acc = super.draw();
+            this.getDrawingContext().restore();
+        }
+
+        return acc;
     }
 
     override
-    rect getBounds() { return rect.init; }
-
-    override
-    void setBounds(rect size) { }
+    recti getBounds() { 
+        if (SbWidget parent = this.getParent()) {
+            return parent.getBounds();
+        }
+        return recti.init; 
+    }
 }

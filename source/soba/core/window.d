@@ -182,6 +182,16 @@ public:
         return vec2(0, 0); // TODO: GL path
     }
 
+    /**
+        Gets the UI scale of the window
+    */
+    final
+    vec2 getUIScale() {
+        vec2 size = this.getSize();
+        vec2 fbSize = this.getFramebufferSize();
+        return vec2(fbSize.x/size.x, fbSize.y/size.y);
+    }
+
     version(SbMetal) {
         /**
             Returns the underlying device

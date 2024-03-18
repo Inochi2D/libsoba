@@ -1,12 +1,13 @@
 module soba.widgets.window.mainwindow;
 import soba.widgets.window;
 import soba.widgets.container;
+import soba.widgets.widget;
 import numem.all;
+import soba.core.math;
 import soba.core.window;
 import soba.core.app;
 import soba.drawing.surfaces;
 import soba.drawing.contexts;
-import inmath;
 import bindbc.sdl;
 
 class SbMainWindow : SbWindow {
@@ -14,7 +15,21 @@ nothrow @nogc:
 private:
     SbApplication app;
     SbSurface surface;
-    SbDrawingContext ctx;
+
+    shared_ptr!SbDrawingContext ctx;
+    SbDrawingContext ctxref;
+
+protected:
+
+    override
+    ref SbSurface getSurface() {
+        return surface;
+    }
+
+    override
+    ref SbDrawingContext getDrawingContext() {
+        return ctxref;
+    }
 
 public:
     ~this() {
@@ -26,33 +41,35 @@ public:
 
         this.app = app;
         this.createBackingWindow(app.appName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
-        this.surface = createSurfaceForBackingWindow(backing);
-        this.ctx = surface.getContext();
+        
+        // Surface and context
+        this.surface = sbCreateSurface(this.getBackingWindow());
+        this.ctx = createContext(surface.getFormat(), width, height);
+        this.ctxref = ctx.get();
+        this.ctxref.setTarget(this.surface);
     }
 
     override
-    void update() {
-
-    }
-
-    override
-    void show() {
+    SbWidget show() {
         super.show();
-        if (backing)
-            backing.show();
+        if (this.getBackingWindow())
+            this.getBackingWindow().show();
+
+        return this;
     }
 
     override
-    void hide() {
+    SbWidget hide() {
         super.hide();
-        if (backing) 
-            backing.hide();
+        if (this.getBackingWindow()) 
+            this.getBackingWindow().hide();
+
+        return this;
     }
 
     final
     void close() {
-        nogc_delete(backing);
-        backing = null;
+        this.destroyBackingWindow();
     }
 
     /**
@@ -60,18 +77,26 @@ public:
     */
     final
     bool isCloseRequested() {
-        return backing is null;
+        return this.getBackingWindow() is null;
     }
 
     /**
         Redraws the entire window
     */
-    void draw() {
-        super.draw(ctx);
-        surface.flush();
+    override
+    int draw() {
+        bool isSelfDirty = this.isDirty();
+        int acc = 0;
 
-        backing.getCompositor().beginFrame();
-        backing.getCompositor().blitSurface(surface, rect(0, 0, surface.getWidth(), surface.getHeight()));
-        backing.getCompositor().endFrame();
+        if (isSelfDirty) {
+            acc = super.draw();
+            ctxref.flush();
+        }
+            
+        this.getBackingWindow().getCompositor().beginFrame();
+        this.getBackingWindow().getCompositor().blitSurface(surface, rect(0, 0, surface.getWidth(), surface.getHeight()));
+        this.getBackingWindow().getCompositor().endFrame();
+
+        return acc;
     }
 }

@@ -85,15 +85,26 @@ public:
     override
     void flush() {
         super.flush();
-        renderTarget.replaceRegion(
-            MTLRegion(
-                MTLOrigin(0, 0), 
-                MTLSize(this.getWidth(), this.getHeight(), 1)
-            ), 
-            0, 
-            this.getContext().getBufferHandle(), 
-            this.getContext().getStride()
-        );
+    }
+
+    /**
+        Blits from the current aquired context on to the surface
+    */
+    override
+    void blit(recti src, vec2i dst) {
+        if (this.parent) {
+            size_t offset = ((src.y*src.width)+src.x)*4;
+
+            renderTarget.replaceRegion(
+                MTLRegion(
+                    MTLOrigin(dst.x, dst.y), 
+                    MTLSize(src.width, src.height, 1)
+                ), 
+                0, 
+                this.parent.getBufferHandle()+offset,
+                this.parent.getStride()
+            );
+        }
     }
 
     override

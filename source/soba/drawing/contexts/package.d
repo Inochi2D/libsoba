@@ -1,4 +1,5 @@
 module soba.drawing.contexts;
+import soba.drawing.surfaces;
 import soba.drawing.common;
 import cairo;
 import numem.all;
@@ -21,6 +22,9 @@ struct SbGradientStop {
     vec4 color;
 }
 
+/**
+    A context used for drawing on to a surface
+*/
 abstract
 class SbDrawingContext {
 nothrow @nogc:
@@ -30,6 +34,7 @@ protected:
     size_t height;
     float scale;
     SbSurfaceFormat format;
+    SbSurface target;
 
 public:
 
@@ -41,6 +46,23 @@ public:
         this.width = width;
         this.height = height;
         this.scale = 1;
+    }
+
+    /**
+        Sets the target to be rendered to
+    */
+    void setTarget(SbSurface target) {
+
+        // If we have a target already, decouple from it
+        if (this.target) 
+            this.target.aquire(null);
+        
+        // Then apply our new target
+        this.target = target;
+        if (target) {
+            target.aquire(this);
+            this.resize(target.getWidth(), target.getHeight());
+        }
     }
 
     /**
@@ -203,6 +225,16 @@ public:
         Restores state from a saved state
     */
     abstract void restore();
+
+    /**
+        Flushes the contents to the target (if possible)
+    */
+    abstract bool flush();
+
+    /**
+        Flushes the contents to the target (if possible)
+    */
+    abstract bool flush(recti src);
 
     /**
         Saves the content of the drawing context to a PNG

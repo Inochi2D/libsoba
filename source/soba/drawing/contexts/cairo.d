@@ -41,6 +41,7 @@ public:
         cairo = cairo_create(surface);
 
         this.dst = cairo_image_surface_get_data(surface);
+        cairo_set_antialias(cairo, cairo_antialias_t.CAIRO_ANTIALIAS_BEST);
     }
 
     override
@@ -69,12 +70,6 @@ public:
     override
     size_t getStride() {
         return cairo_format_stride_for_width(toCairoSurfaceFormat(), cast(int)width);
-    }
-
-    override
-    ubyte* getBufferHandle() {
-        cairo_surface_flush(surface);
-        return super.getBufferHandle();
     }
 
     override
@@ -266,6 +261,24 @@ public:
     override
     void restore() {
         cairo_restore(cairo);
+    }
+
+    override
+    bool flush() {
+        cairo_surface_flush(surface);
+        if (target) {
+            target.blit(recti(0, 0, cast(int)width, cast(int)height), vec2i(0, 0));
+        }
+        return target !is null;
+    }
+
+    override
+    bool flush(recti src) {
+        cairo_surface_flush(surface);
+        if (target) {
+            target.blit(src, vec2i(src.x, src.y));
+        }
+        return target !is null;
     }
 
     override

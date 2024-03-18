@@ -1,4 +1,7 @@
 module soba.drawing.common;
+import inmath;
+
+public import soba.core.math;
 
 /**
     Texture format for surface and drawing context creation

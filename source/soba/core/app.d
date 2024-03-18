@@ -35,9 +35,6 @@ void sbRunApplication(SbMainWindow window) {
     try {
         while(!window.isCloseRequested()) {
             if (sbPumpEventQueue()) break;
-
-            window.update();
-            window.draw();
         }
 
         nogc_delete(window);

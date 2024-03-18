@@ -78,9 +78,8 @@ public:
         drawable = backing.getLayer().nextDrawable();
 
         MTLRenderPassDescriptor desc = MTLRenderPassDescriptor.new_();
-        desc.colorAttachments[0].clearColor = MTLClearColor(0, 0, 0, 1);
         desc.colorAttachments[0].texture = drawable.texture;
-        desc.colorAttachments[0].loadAction = MTLLoadAction.Clear;
+        desc.colorAttachments[0].loadAction = MTLLoadAction.Load;
         desc.colorAttachments[0].storeAction = MTLStoreAction.Store;
         encoder = buffer.renderCommandEncoderWithDescriptor(desc);
         

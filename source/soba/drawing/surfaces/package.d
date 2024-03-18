@@ -3,11 +3,17 @@ import soba.drawing.compositors;
 import soba.drawing.contexts;
 import soba.drawing.common;
 import soba.core.window;
+import soba.core.math;
 import numem.all;
-import inmath;
 
 nothrow @nogc:
 
+/**
+    A backing texture ready to be composited in to the application window.
+
+    To draw on to this surface a SbDrawingContext needs to target the surface.
+    see `SbDrawingContext.setTarget`.
+*/
 abstract
 class SbSurface {
 nothrow @nogc:
@@ -15,21 +21,35 @@ private:
     size_t width, height;
     bool dirty;
     SbSurfaceFormat format;
-    shared_ptr!SbDrawingContext context;
+
+protected:
+    SbDrawingContext parent;
 
 public:
     this(SbSurfaceFormat format, size_t width, size_t height) {
-        this.context = createContext(format, width, height);
         this.width = width;
         this.height = height;
         this.format = format;
     }
 
     /**
+        Allows a drawing context to aquire the surface for writing
+    */
+    void aquire(SbDrawingContext ctx) {
+        if(parent) {
+            parent.setTarget(null);
+        }
+
+        this.parent = ctx;
+    }
+
+    /**
         Resizes the surface
     */
     void resize(size_t width, size_t height) {
-        context.get().resize(width, height);
+        if (parent) {
+            parent.resize(width, height);
+        }
     }
 
     /**
@@ -53,14 +73,6 @@ public:
     final
     bool getDirty() {
         return this.dirty;
-    }
-
-    /**
-        Gets the drawing context associated with the surface
-    */
-    final
-    SbDrawingContext getContext() {
-        return context.get();
     }
 
     /**
@@ -91,9 +103,14 @@ public:
         Creates a surface derived from the surface
     */
     abstract SbSurface createSubSurface(size_t width, size_t height);
+
+    /**
+        Blits from the current aquired context on to the surface
+    */
+    abstract void blit(recti src, vec2i dst);
 }
 
-SbSurface createSurfaceForBackingWindow(SbBackingWindow backing) {
+SbSurface sbCreateSurface(SbBackingWindow backing) {
     version(SbMetal) {
         import soba.drawing.surfaces.metal : SbMetalSurface;
 
@@ -101,66 +118,4 @@ SbSurface createSurfaceForBackingWindow(SbBackingWindow backing) {
         return nogc_new!SbMetalSurface(SbSurfaceFormat.RGB, cast(size_t)size.x, cast(size_t)size.y, backing.getDevice());
     }
     return null;
-}
-
-/**
-    Surface for graphics accelerated rendering
-*/
-abstract
-class SbSurface3D {
-nothrow @nogc:
-private:
-    size_t width, height;
-    bool dirty;
-    SbSurfaceFormat format;
-    shared_ptr!SbDrawingContext context;
-
-public:
-    ~this() {
-        nogc_delete(context);
-    }
-
-    this(SbSurfaceFormat format, size_t width, size_t height) {
-        this.width = width;
-        this.height = height;
-        this.format = format;
-    }
-
-    /**
-        Gets the backing context
-    */
-    void* getBackingContext() { return null; }
-
-    /**
-        Resizes the surface
-    */
-    void resize(size_t width, size_t height) { }
-
-    /**
-        Flushes the surface, updating the rendering state and marking it clean again
-    */
-    void flush() {
-        this.dirty = false;
-    }
-
-    /**
-        Marks the surface as dirty
-    */
-    final
-    void markDirty() {
-        this.dirty = true;
-    }
-
-    /**
-        Gets whether this surface is dirty and should be redrawn
-    */
-    final
-    bool getDirty() {
-        return this.dirty;
-    }
-
-    /**
-        Creates a surface derived from the surface
-    */
-    abstract SbSurface createSubSurface(size_t width, size_t height);
 }
