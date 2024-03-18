@@ -1,8 +1,10 @@
-module soba.widgets.container;
+module soba.widgets.containers;
 import soba.widgets.widget;
 import soba.drawing.contexts;
 import soba.core.math;
 import numem.all;
+
+public import soba.widgets.containers.box;
 
 enum SbChildPosition {
     Front,
@@ -16,7 +18,18 @@ enum SbChildPosition {
 abstract
 class SbContainer : SbWidget {
 nothrow @nogc:
+protected:
+
+    override
+    void onReflow() {
+        super.onReflow();
+
+        foreach(child; this.getChildren()) {
+            child.setBounds(this.getBounds());
+        }
+    }
 public:
+
     this() {
         super();
     }
@@ -35,6 +48,14 @@ public:
         }
     }
 
+
+    /**
+        Removes a child widget from the container
+    */
+    void removeChild(SbWidget widget) {
+        super.removeChild(widget);
+    }
+
     /**
         Draws the container and all of its children
     */
@@ -42,23 +63,12 @@ public:
     int draw() {
         int acc = 0;
 
-        recti bounds = this.getBounds();
-
         if (this.isDirty()) {
             this.getDrawingContext().save();
-                this.getDrawingContext().clipRectangle(bounds.x, bounds.y, bounds.width, bounds.height);
                 acc = super.draw();
             this.getDrawingContext().restore();
         }
 
         return acc;
-    }
-
-    override
-    recti getBounds() { 
-        if (SbWidget parent = this.getParent()) {
-            return parent.getBounds();
-        }
-        return recti.init; 
     }
 }

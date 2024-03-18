@@ -25,14 +25,18 @@ public:
     this(ref SbApplication app, int width, int height) {
         super(app, width, height);
 
-        enum offset = 16;
-        foreach(i; 0..10) {
-            this.addChild(
-                nogc_new!SbButton(nstring("uwu"), recti(offset, offset+((offset*i)+(i*64)), 256, 64))
-                .setBorderRadius(16)
-                .show(),
-                SbChildPosition.Back
-            );
-        }
+        SbBox box = nogc_new!SbBox(SbBoxDirection.Horizontal, true, true);
+
+        box.addChild(
+            nogc_new!SbButton(nstring("This is a long test string"))
+            .setOnClicked((button) {
+                printf("Hello, world!\n");
+            })
+            .setBorderRadius(16),
+            SbChildPosition.Back
+        );
+        
+        this.addChild(box, SbChildPosition.Back);
+        this.showAll();
     }
 }

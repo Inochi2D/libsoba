@@ -23,6 +23,7 @@ private:
     MTLLibrary baseShader;
     MTLRenderPipelineState pipeline;
     CAMetalDrawable drawable;
+    MTLRenderPassDescriptor pass;
 
     void initPipeline() {
         uniformBuffer = device.newBuffer(MetalUniformData.sizeof, MTLResourceOptions.StorageModeShared);
@@ -35,7 +36,6 @@ private:
         MTLRenderPipelineDescriptor desc = MTLRenderPipelineDescriptor.alloc.initialize();
         desc.vertexFunction = baseShader.newFunctionWithName("vertex_main".ns);
         desc.fragmentFunction = baseShader.newFunctionWithName("fragment_main".ns);
-
 		desc.colorAttachments[0].pixelFormat = backing.getLayer().pixelFormat;
         desc.colorAttachments[0].blendingEnabled = true;
         desc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.One;
@@ -44,10 +44,20 @@ private:
         desc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.OneMinusSourceAlpha;
         pipeline = device.newRenderPipelineStateWithDescriptor(desc);
 
+        desc.release();
+
+        pass = MTLRenderPassDescriptor.new_();
+        pass.colorAttachments[0].loadAction = MTLLoadAction.Load;
+        pass.colorAttachments[0].storeAction = MTLStoreAction.Store;
+
         queue = device.newCommandQueue();
     }
 
 public:
+    ~this() {
+        pass.release();
+    }
+
     this(SbBackingWindow backing, size_t width, size_t height) {
         super(backing);
         this.device = backing.getDevice();
@@ -74,16 +84,11 @@ public:
 
     override
     void beginFrame() {
-        buffer = queue.commandBuffer();
         drawable = backing.getLayer().nextDrawable();
-
-        MTLRenderPassDescriptor desc = MTLRenderPassDescriptor.new_();
-        desc.colorAttachments[0].texture = drawable.texture;
-        desc.colorAttachments[0].loadAction = MTLLoadAction.Load;
-        desc.colorAttachments[0].storeAction = MTLStoreAction.Store;
-        encoder = buffer.renderCommandEncoderWithDescriptor(desc);
+        buffer = queue.commandBuffer();
         
-        desc.release();
+        pass.colorAttachments[0].texture = drawable.texture;
+        encoder = buffer.renderCommandEncoderWithDescriptor(pass);
     }
 
     override

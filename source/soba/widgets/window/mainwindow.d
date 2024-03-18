@@ -1,6 +1,6 @@
 module soba.widgets.window.mainwindow;
 import soba.widgets.window;
-import soba.widgets.container;
+import soba.widgets.containers;
 import soba.widgets.widget;
 import numem.all;
 import soba.core.math;
@@ -29,6 +29,11 @@ protected:
     override
     ref SbDrawingContext getDrawingContext() {
         return ctxref;
+    }
+
+    override
+    void onReflow() {
+        this.setBounds(recti(0, 0, cast(int)surface.getWidth(), cast(int)surface.getHeight()));
     }
 
 public:
@@ -90,6 +95,7 @@ public:
         surface.resize(cast(size_t)width, cast(size_t)height);
         super.onResize(width, height);
         this.markDirty();
+        this.onReflow();
     }
 
     /**

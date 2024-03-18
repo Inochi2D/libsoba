@@ -145,6 +145,8 @@ private {
     float currTime;
     float lastTime;
 
+    SbWidget focusedWidget;
+
     weak_map!(uint, EventSubscriber) windows;
     weak_map!(void*, EventAnimation) animations;
 }

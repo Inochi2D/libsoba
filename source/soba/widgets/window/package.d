@@ -1,5 +1,5 @@
 module soba.widgets.window;
-import soba.widgets.container;
+import soba.widgets.containers;
 import soba.widgets.widget;
 import soba.core.window;
 import soba.core.math;

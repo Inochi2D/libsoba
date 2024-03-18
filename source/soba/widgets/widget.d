@@ -9,6 +9,9 @@ nothrow @nogc:
 private:
     bool shown;
     bool dirty;
+    recti bounds;
+    vec2i requestedSize;
+    vec2i minSize;
 
     SbWidget parent;
     weak_vector!SbWidget children;
@@ -25,6 +28,8 @@ private:
             }
         }
 
+        // We want to fit our parent
+        this.setRequestedSize(parent.bounds.dimensions);
         this.parent = parent;
     }
 
@@ -41,6 +46,9 @@ protected:
         } else {
             children ~= widget;
         }
+
+        widget.markDirty();
+        this.reflow();
         return children.size();
     }
 
@@ -53,7 +61,35 @@ protected:
             return false;
 
         children.remove(offset);
+        this.reflow();
         return true;
+    }
+
+    /**
+        Removes a child
+    */
+    final
+    SbWidget removeChild(SbWidget toRemove) {
+        ptrdiff_t idx = -1;
+        foreach(i, child; children) {
+            if (toRemove is child) {
+                idx = i;
+            }
+        }
+
+        if (idx < 0) return null;
+        SbWidget toReturn = children[idx];
+        this.removeChild(idx);
+        toReturn.parent = null;
+        return toReturn;
+    }
+
+    /**
+        Gets the child widgets to this widget
+    */
+    final
+    SbWidget[] getChildren() {
+        return this.children[0..$];
     }
 
     /**
@@ -78,6 +114,24 @@ protected:
     }
 
     /**
+        Called when a change happens that'd require reflowing the widget.
+    */
+    void onReflow() {
+        
+        if (bounds.width < minSize.x) {
+            bounds.width = minSize.x;
+        }
+
+        if (bounds.height < minSize.y) {
+            bounds.height = minSize.y;
+        }
+        
+        foreach(child; children) {
+            child.onReflow();
+        }
+    }
+
+    /**
         Called when a widget requests a redraw.
     */
     void onDraw(ref SbDrawingContext context) { }
@@ -97,7 +151,7 @@ protected:
         foreach(SbWidget child; children) {
             if (child && child.shown) {
                 if (this.getBounds().intersects(vec2(x, y))) {
-                    child.onMouseMove(x, y);
+                    if (child.onMouseMove(x, y)) break;
                 }
             }
         }
@@ -113,7 +167,7 @@ protected:
         foreach(child; children) {
             if (child && child.shown) {
                 if (child.getBounds().intersects(vec2(x, y))) {
-                    child.onMouseClicked(x, y, button);
+                    if (child.onMouseClicked(x, y, button)) break;
                 }
             }
         }
@@ -129,7 +183,7 @@ protected:
         foreach(child; children) {
             if (child && child.shown) {
                 if (child.getBounds().intersects(vec2(x, y))) {
-                    child.onMouseDoubleClicked(x, y, button);
+                    if (child.onMouseDoubleClicked(x, y, button)) break;
                 }
             }
         }
@@ -145,7 +199,7 @@ protected:
         foreach(child; children) {
             if (child && child.shown) {
                 if (child.getBounds().intersects(vec2(x, y))) {
-                    child.onMouseReleased(x, y, button);
+                    if (child.onMouseReleased(x, y, button)) break;
                 }
             }
         }
@@ -161,11 +215,30 @@ public:
     }
 
     /**
+        Shows this widget and all subwidgets
+    */
+    SbWidget showAll() {
+        this.show();
+
+        foreach(child; children) {
+            child.showAll();
+        }
+
+        return this;
+    }
+
+    final
+    void reflow() {
+        this.onReflow();
+    }
+
+    /**
         Shows the widget
     */
     SbWidget show() {
         shown = true;
         this.markDirty();
+        this.reflow();
 
         return this;
     }
@@ -193,6 +266,8 @@ public:
         // TODO: Is this the right thing to do?
         int acc = 0;
         if (this.dirty) {
+        
+            this.reflow();
 
             // We're cleaning it now.
             this.dirty = false;
@@ -216,7 +291,48 @@ public:
     /**
         Gets the rectangle bounds of the widget
     */
-    abstract recti getBounds();
+    recti getBounds() {
+        return bounds;
+    }
+
+    /**
+        Sets the bounds of the widget
+    */
+    SbWidget setBounds(recti bounds) {
+        this.bounds = bounds;
+        this.markDirty();
+        return this;
+    }
+
+    /**
+        Gets the requested size of the widget
+    */
+    vec2i getRequestedSize() {
+        return requestedSize;
+    }
+
+    /**
+        Sets the requested size of the widget
+    */
+    SbWidget setRequestedSize(vec2i requestedSize) {
+        this.requestedSize = requestedSize;
+        return this;
+    }
+
+    /**
+        Gets the requested size of the widget
+    */
+    vec2i getMinimumSize() {
+        return minSize;
+    }
+
+    /**
+        Sets the requested size of the widget
+    */
+    SbWidget setMinimumSize(vec2i minSize) {
+        this.minSize = minSize;
+        return this;
+    }
 
     /**
         Marks the widget dirt, setting it up for redrawing
