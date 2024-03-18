@@ -17,6 +17,9 @@ bool sbPumpEventQueue() {
     // Pump system events
     SDL_PumpEvents();
 
+    currTime = cast(float)SDL_GetTicks64()*0.0001;
+    float deltaTime = currTime-lastTime;
+
     // If we have ongoing animations, they take precedent over the event queue.
     // As such we shouldn't freeze the main thread while an animation is running.
     int cont;
@@ -78,6 +81,7 @@ bool sbPumpEventQueue() {
     // Animation events
     foreach(void* widget; animations.byKey()) {
         if (widget in animations) {
+            animations[widget].time += deltaTime;
             animations[widget].widget.onAnimate(animations[widget].time);
             animations.remove(widget);
         }
@@ -90,6 +94,7 @@ bool sbPumpEventQueue() {
         }
     }
 
+    lastTime = currTime;
     return false;
 }
 
@@ -135,6 +140,9 @@ private {
         SbWidget widget;
         float time;
     }
+
+    float currTime;
+    float lastTime;
 
     weak_map!(uint, EventSubscriber) windows;
     weak_map!(void*, EventAnimation) animations;
