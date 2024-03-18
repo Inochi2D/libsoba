@@ -47,6 +47,8 @@ public:
         this.ctx = createContext(surface.getFormat(), width, height);
         this.ctxref = ctx.get();
         this.ctxref.setTarget(this.surface);
+
+        this.setResizable(true);
     }
 
     override
@@ -78,6 +80,16 @@ public:
     final
     bool isCloseRequested() {
         return this.getBackingWindow() is null;
+    }
+
+    /**
+        Called when the window is resized
+    */
+    override
+    void onResize(float width, float height) {
+        surface.resize(cast(size_t)width, cast(size_t)height);
+        super.onResize(width, height);
+        this.markDirty();
     }
 
     /**

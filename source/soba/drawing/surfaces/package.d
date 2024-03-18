@@ -47,6 +47,8 @@ public:
         Resizes the surface
     */
     void resize(size_t width, size_t height) {
+        this.width = width;
+        this.height = height;
         if (parent) {
             parent.resize(width, height);
         }

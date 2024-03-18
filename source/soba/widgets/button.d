@@ -60,6 +60,7 @@ protected:
         }
 
         // Draw outline
+        context.setStrokeWidth(5);
         context.setGradientLinear(outLineColor, 0, bounds.top, 0, bounds.bottom);
         context.strokePreserve();
 

@@ -97,6 +97,16 @@ protected:
         return backing;
     }
 
+    /**
+        Set whether the window is resizable
+    */
+    final
+    void setResizable(bool resizable) {
+        if (backing) {
+            backing.setResizeAllowed(resizable);
+        }
+    }
+
 public:
     ~this() {
         this.destroyBackingWindow();

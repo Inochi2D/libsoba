@@ -164,8 +164,8 @@ public:
     final
     void setFramebufferSize(float width, float height) {
         version(SbMetal) {
-            layer.drawableSize.width = width;
-            layer.drawableSize.height = height;
+            layer.drawableSize = CGSize(width, height);
+            this.compositor.resize(cast(size_t)width, cast(size_t)height);
         }
     }
 
@@ -190,6 +190,14 @@ public:
         vec2 size = this.getSize();
         vec2 fbSize = this.getFramebufferSize();
         return vec2(fbSize.x/size.x, fbSize.y/size.y);
+    }
+
+    /**
+        Sets whether resizing is allowed
+    */
+    final
+    void setResizeAllowed(bool resizeAllowed) {
+        SDL_SetWindowResizable(window, resizeAllowed);
     }
 
     version(SbMetal) {

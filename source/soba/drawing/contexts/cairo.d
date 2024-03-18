@@ -46,25 +46,19 @@ public:
 
     override
     void resize(size_t width, size_t height) {
-        int oldWidth = cast(int)this.width;
-        int oldHeight = cast(int)this.height;
         super.resize(width, height);
 
-        cairo_surface_t* newSurface = cairo_image_surface_create(toCairoSurfaceFormat(), cast(int)width, cast(int)height);
-        cairo_t* newCairo = cairo_create(newSurface);
+        cairo_surface_t* surface = cairo_image_surface_create(toCairoSurfaceFormat(), cast(int)width, cast(int)height);
+        cairo_t* cairo = cairo_create(surface);
 
-        cairo_set_source_surface(newCairo, surface, 0, 0);
-        cairo_rectangle(newCairo, 0, 0, oldWidth, oldHeight);
-        cairo_fill(newCairo);
+        cairo_destroy(this.cairo);
+        cairo_surface_destroy(this.surface);
 
-        cairo_destroy(cairo);
-        cairo_surface_destroy(surface);
+        this.cairo = cairo;
+        this.surface = surface;
 
-        cairo = newCairo;
-        surface = newSurface;
-
-        cairo_surface_set_device_scale(surface, this.scale, this.scale);
-        this.dst = cairo_image_surface_get_data(surface);
+        cairo_surface_set_device_scale(this.surface, this.scale, this.scale);
+        this.dst = cairo_image_surface_get_data(this.surface);
     }
 
     override

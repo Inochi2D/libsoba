@@ -38,9 +38,10 @@ bool sbPumpEventQueue() {
 
                 case SDL_WINDOWEVENT:
                     if (ev.window.windowID in windows) {
-                        switch(ev.window.type) {
+                        switch(ev.window.event) {
                             case SDL_WINDOWEVENT_RESIZED:
-                                windows[ev.window.windowID].window.onResize(ev.window.data1, ev.window.data2);
+                                vec2 size = windows[ev.window.windowID].backing.getFramebufferSize();
+                                windows[ev.window.windowID].window.onResize(size.x, size.y);
                                 break;
 
                             default: break;

@@ -225,8 +225,12 @@ public:
     void markDirty() {
         this.dirty = true;
 
-        if (parent) {
+        if (parent && !parent.isDirty()) {
             parent.markDirty();
+        }
+
+        foreach(child; children) {
+            child.markDirty();
         }
     }
 
