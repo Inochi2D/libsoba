@@ -220,10 +220,13 @@ public:
 
     /**
         Uses the specified mask for rendering.
-
-        Setting to null unsets the mask.
     */
     abstract void setMask(shared_ptr!SbMask mask);
+
+    /**
+        Clears the mask
+    */
+    abstract void clearMask();
 
     /**
         Clears the current path

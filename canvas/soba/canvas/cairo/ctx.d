@@ -222,18 +222,24 @@ public:
 
         return shared_ptr!SbMask.fromPtr(nogc_new!SbCairoMask(getTarget().getFormat(), this, path));
     }
-
-    /**
-        Uses the specified mask for rendering.
-
-        Setting to null unsets the mask.
-    */
+    
     override
     void setMask(shared_ptr!SbMask mask) {
         this.currentMask = mask;
 
         // Clear smart pointer
-        if (currentMask is null) {
+        if (currentMask.get() !is null) {
+            nogc_delete(currentMask);
+        }
+
+        this.applyMask();
+    }
+    
+    override
+    void clearMask() {
+
+        // Clear smart pointer
+        if (currentMask.get() !is null) {
             nogc_delete(currentMask);
         }
 
@@ -257,7 +263,7 @@ public:
 
     override
     void curveTo(vec2 pos, vec2 ctrl1, vec2 ctrl2) {
-        cairo_curve_to(cr, pos.x, pos.y, ctrl1.x, ctrl1.y, ctrl2.x, ctrl2.y);
+        cairo_curve_to(cr, ctrl1.x, ctrl1.y, ctrl2.x, ctrl2.y, pos.x, pos.y);
     }
 
     override
@@ -282,7 +288,7 @@ public:
         if (negative) {
             cairo_arc_negative(cr, arcCenterPos.x, arcCenterPos.y, maxDiff, radians(0), radians(270));
         } else {
-
+            cairo_arc(cr, arcCenterPos.x, arcCenterPos.y, maxDiff, radians(0), radians(90));
         }
     }
 

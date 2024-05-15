@@ -69,13 +69,14 @@ public:
     /**
         Creates a canvas for the specified backend
     */
-    static SbCanvas create(SbCanvasFormat fmt, uint w, uint h) {
+    static shared_ptr!SbCanvas create(SbCanvasFormat fmt, uint w, uint h) {
         switch(cnvBackendGet()) {
             case SbCanvasBackend.cairo:
-                return nogc_new!SbCairoCanvas(fmt, w, h);
+                return shared_ptr!SbCanvas.fromPtr(nogc_new!SbCairoCanvas(fmt, w, h));
 
             default:
-                return null;
+                shared_ptr!SbCanvas canvas;
+                return canvas;
         }
     }
 
