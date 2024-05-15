@@ -13,6 +13,7 @@ soba-test-*
 *.o
 *.obj
 *.lst
+*.a
 .DS_Store
 
 out/
