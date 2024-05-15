@@ -40,6 +40,21 @@ public:
         this.op = SbBlendOperator.sourceOver;
     }
 
+    override
+    SbContextCookie save() {
+        cairo_save(cr);
+
+        return null;
+    }
+
+    /**
+        Restores state of context
+    */
+    override
+    void restore(SbContextCookie) {
+        cairo_restore(cr);
+    }
+
 
     override
     void setFillRule(SbFillRule fill) {
@@ -315,6 +330,31 @@ public:
     override
     void setSource(SbCanvas canvas, vec2 offset) {
         cairo_set_source_surface(cr, cast(cairo_surface_t*)canvas.getHandle(), offset.x, offset.y);
+    }
+
+    override
+    void pushClipRect(math.rect area) {
+        super.pushClipRect(area);
+
+        auto currClip = getCurrentClip();
+        cairo_rectangle(cr, currClip.x, currClip.y, currClip.width, currClip.height);
+        cairo_clip(cr);
+    }
+
+    override
+    void popClipRect() {
+        super.popClipRect();
+        cairo_reset_clip(cr);
+
+        auto currClip = getCurrentClip();
+        cairo_rectangle(cr, currClip.x, currClip.y, currClip.width, currClip.height);
+        cairo_clip(cr);
+    }
+
+    override
+    void clearClipRects() {
+        super.clearClipRects();
+        cairo_reset_clip(cr);
     }
 }
 
