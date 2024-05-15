@@ -75,6 +75,8 @@ enum SbBlendOperator {
     hslLuminosity
 }
 
+alias SbContextCookie = void*;
+
 /**
     A rendering context
 */
@@ -83,8 +85,13 @@ class SbContext {
 nothrow @nogc:
 private:
     SbCanvas target;
+    vector!(inmath.linalg.rect) clipRects;
 
 public:
+
+    ~this() {
+        nogc_delete(clipRects);
+    }
 
     /**
         Creates a context for the specified canvas
@@ -96,12 +103,13 @@ public:
     /**
         Static helper function which creates a context using the same backend as the canvas
     */
-    static SbContext create(SbCanvas canvas) {
+    static shared_ptr!SbContext create(SbCanvas canvas) {
         switch(canvas.getBackend()) {
             case SbCanvasBackend.cairo:
-                return nogc_new!SbCairoContext(canvas);
+                return shared_ptr!SbContext.fromPtr(nogc_new!SbCairoContext(canvas));
             default:
-                return null;
+                shared_ptr!SbContext ctx;
+                return ctx;
         }
     }
 
@@ -112,6 +120,16 @@ public:
     SbCanvas getTarget() {
         return target;
     }
+
+    /**
+        Saves state of context
+    */
+    abstract SbContextCookie save();
+
+    /**
+        Restores state of context
+    */
+    abstract void restore(SbContextCookie);
 
     /**
         Sets the fill rule
@@ -267,4 +285,65 @@ public:
         Sets the source for rendering
     */
     abstract void setSource(SbCanvas canvas, vec2 offset=vec2(0));
+
+    /**
+        Adds a clipping rectangle
+    */
+    void pushClipRect(inmath.linalg.rect area) {
+        inmath.linalg.rect diff = area;
+
+        if (clipRects.size() > 0) {
+            inmath.linalg.rect lastClip = clipRects[$-1];
+
+            if (diff.left < lastClip.left) diff.x = lastClip.x;
+            if (diff.top < lastClip.top) diff.y = lastClip.y;
+
+            if (diff.right > lastClip.right) diff.width = diff.right-lastClip.right;
+            if (diff.bottom > lastClip.bottom) diff.height = diff.bottom-lastClip.bottom;
+        }
+
+        clipRects ~= diff;
+    }
+
+    /**
+        Pops clipping rectangle
+    */
+    void popClipRect() {
+        clipRects.popBack();
+    }
+
+    /**
+        Clears clipping rectangle
+    */
+    void clearClipRects() {
+        clipRects.clear();
+    }
+
+    /**
+        Gets the amount of clipping rectangles active
+    */
+    final
+    uint getClipRectsActive() {
+        return cast(uint)clipRects.size();
+    }
+
+    /**
+        Returns a slice of active clipping rectangles
+
+        This memory is owned by the context and should not be freed manually.
+    */
+    final
+    inmath.linalg.rect[] getClipRects() {
+        return clipRects[0..$];
+    }
+
+    /**
+        Returns the current clipping area
+
+        If no clipping is enabled, returns an infinitely big rectangle.
+    */
+    final
+    inmath.linalg.rect getCurrentClip() {
+        return clipRects.size > 0 ? clipRects[$-1] : inmath.linalg.rect(-float.infinity, -float.infinity, float.infinity, float.infinity);
+    }
 }
