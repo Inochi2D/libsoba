@@ -27,12 +27,16 @@ private:
     void applyClipRects() {
         cairo_reset_clip(cr);
 
-        auto currClip = getCurrentClip();
-        cairo_rectangle(cr, currClip.x, currClip.y, currClip.width, currClip.height);
-        cairo_clip(cr);
+        if (getClipRectsActive() > 0) {
+            auto currClip = getCurrentClip();
+            cairo_rectangle(cr, currClip.x, currClip.y, currClip.width, currClip.height);
+            cairo_clip(cr);
+        }
     }
 
     void applyMask() {
+        cairo_reset_clip(cr);
+
         if (currentMask.get() && currentMask.getParent() is this) {
             cairo_append_path(cr, cast(cairo_path_t*)currentMask.getHandle());
             cairo_clip(cr);
@@ -237,12 +241,7 @@ public:
     
     override
     void clearMask() {
-
-        // Clear smart pointer
-        if (currentMask.get() !is null) {
-            nogc_delete(currentMask);
-        }
-
+        nogc_delete(currentMask);
         this.applyMask();
     }
 
