@@ -3,10 +3,11 @@ description "D User Interface Library"
 authors "Inochi2D Project"
 copyright "Copyright © 2023, Inochi2D Project"
 license "BSD 2-clause"
-dependency "i2d-cairo" version="~>1.0.0"
-dependency "numem" version="~>0.6.2"
+
+dependency "numem" version="~>0.7.1"
 dependency "bindbc-sdl" version="~>1.4.6"
 dependency "inmath" version="~>1.0.6"
+dependency "soba:canvas" version="*"
 
 targetPath "out/"
 workingDirectory "out/"
@@ -19,13 +20,42 @@ copyFiles "libs/win32/SDL2.dll" platform="windows-x86"
 
 versions "SDL_2_28"
 
-configuration "metal" {
+subPackage {
+	name "canvas"
+	description "Canvas implementation for rendering"
+	authors "Inochi2D Project"
+	copyright "Copyright © 2024, Inochi2D Project"
+	license "BSD-2-Clause"
+
+	dependency "i2d-cairo" version="~>1.0.0"
+	dependency "inmath" version="*"
+	dependency "numem" version="*"
+
+	// TODO: replace with Gamut?
+	dependency "imagefmt" version="*"
+	
+	sourcePaths "canvas/soba/"
+}
+
+// macOS builds
+configuration "metal-osx" {
 	platforms "osx"
 	dependency "d-metal-binding" version="~>2.0.21"
 	targetType "executable"
 	versions "SbMetal"
 }
 
+// iOS/iPadOS builds
+configuration "metal-ios" {
+	platforms "ios"
+	dependency "d-metal-binding" version="~>2.0.21"
+
+	lflags "-framework" "CoreData" "-framework" "CoreGraphics" "-framework" "Foundation" "-framework" "Metal" "-framework" "UIKit" "-all_load"
+	targetType "executable"
+	versions "SbMetal" "SbIOS"
+}
+
+// Builds for every other platform
 configuration "gl" {
 	dependency "bindbc-opengl" version="~>1.1.0"
 	targetType "executable"
