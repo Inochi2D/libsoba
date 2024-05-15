@@ -9,16 +9,37 @@ module soba.canvas.cairo.ctx;
 import soba.canvas.ctx;
 import soba.canvas.canvas;
 import soba.canvas.pattern;
+import soba.canvas.mask;
 import math = inmath.linalg;
 import inmath.linalg : vec2, vec3, vec4;
 import inmath.math : max, radians, clamp;
 import cairo;
+import soba.canvas.cairo.mask;
+import numem.all;
 
 class SbCairoContext : SbContext {
 nothrow @nogc:
 private:
     cairo_t* cr;
     SbBlendOperator op;
+    shared_ptr!SbMask currentMask;
+
+    void applyClipRects() {
+        cairo_reset_clip(cr);
+
+        auto currClip = getCurrentClip();
+        cairo_rectangle(cr, currClip.x, currClip.y, currClip.width, currClip.height);
+        cairo_clip(cr);
+    }
+
+    void applyMask() {
+        if (currentMask.get() && currentMask.getParent() is this) {
+            cairo_append_path(cr, cast(cairo_path_t*)currentMask.getHandle());
+            cairo_clip(cr);
+        } else {
+            this.applyClipRects();
+        }
+    }
 
 public:
 
@@ -41,20 +62,21 @@ public:
     }
 
     override
+    void* getHandle() {
+        return cr;
+    }
+
+    override
     SbContextCookie save() {
         cairo_save(cr);
 
         return null;
     }
 
-    /**
-        Restores state of context
-    */
     override
     void restore(SbContextCookie) {
         cairo_restore(cr);
     }
-
 
     override
     void setFillRule(SbFillRule fill) {
@@ -180,6 +202,42 @@ public:
     override
     void strokePreserve() {
         cairo_stroke_preserve(cr);
+    }
+
+    /**
+        Creates a mask for the current path.
+
+        Use setMask to use it.
+        Returns null if there's no current path.
+    */
+    override
+    shared_ptr!SbMask fillMask() {
+        cairo_path_t* path = cairo_copy_path(cr);
+        if (path.num_data == 0) {
+            cairo_path_destroy(path);
+
+            shared_ptr!SbMask mask;
+            return mask;
+        }
+
+        return shared_ptr!SbMask.fromPtr(nogc_new!SbCairoMask(getTarget().getFormat(), this, path));
+    }
+
+    /**
+        Uses the specified mask for rendering.
+
+        Setting to null unsets the mask.
+    */
+    override
+    void setMask(shared_ptr!SbMask mask) {
+        this.currentMask = mask;
+
+        // Clear smart pointer
+        if (currentMask is null) {
+            nogc_delete(currentMask);
+        }
+
+        this.applyMask();
     }
 
     override
@@ -344,17 +402,15 @@ public:
     override
     void popClipRect() {
         super.popClipRect();
-        cairo_reset_clip(cr);
-
-        auto currClip = getCurrentClip();
-        cairo_rectangle(cr, currClip.x, currClip.y, currClip.width, currClip.height);
-        cairo_clip(cr);
+        this.applyClipRects();
     }
 
     override
     void clearClipRects() {
         super.clearClipRects();
         cairo_reset_clip(cr);
+
+        this.applyMask();
     }
 }
 

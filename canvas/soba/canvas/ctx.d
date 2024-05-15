@@ -13,6 +13,7 @@ import inmath.linalg;
 import numem.all;
 
 import soba.canvas.cairo.ctx;
+import soba.canvas.mask;
 
 /**
     Fill rule
@@ -122,6 +123,11 @@ public:
     }
 
     /**
+        Returns the underlying handle of this context
+    */
+    abstract void* getHandle();
+
+    /**
         Saves state of context
     */
     abstract SbContextCookie save();
@@ -204,6 +210,20 @@ public:
         Preserves the path for reuse
     */
     abstract void strokePreserve();
+
+    /**
+        Creates a mask for the current path.
+
+        Use setMask to use it.
+    */
+    abstract shared_ptr!SbMask fillMask();
+
+    /**
+        Uses the specified mask for rendering.
+
+        Setting to null unsets the mask.
+    */
+    abstract void setMask(shared_ptr!SbMask mask);
 
     /**
         Clears the current path
