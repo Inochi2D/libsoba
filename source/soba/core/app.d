@@ -1,152 +1,47 @@
-/*
-    Copyright © 2023, Inochi2D Project
-    Distributed under the 2-Clause BSD License, see LICENSE file.
-    
-    Authors: Luna Nielsen
-
-    Application
-*/
 module soba.core.app;
-import soba.core.gpu;
-import soba.ui;
-import std.format;
-import inmath.math;
-import soba.ui.window.appwindow;
-import soba.ui.window;
+import soba.core.events;
+import soba.widgets.window.mainwindow;
+import numem.all;
+import numem.mem.map;
+import cairo;
 import bindbc.sdl;
+import soba.core.window;
 
-private {
-    __gshared SbApp sbCurrApp_;
-}
-
-struct SbVersion {
-    int major;
-    int minor;
-    int patch;
-    string tag;
-
-    int opCmp(ref SbVersion other) const {
-        int s = this.major - other.major;
-        if (s == 0) s += this.minor - other.minor;
-        if (s == 0) s += this.patch - other.patch;
-        return clamp(s, -1, 1);
-    }
-
-    /**
-        Gets semantic version string
-    */
-    string toString() const {
-        string ver_ = "%s.%s.%s".format(major, minor, patch);
-        if (tag.length > 0) ver_ ~= "-%s".format(tag);
-        return ver_;
-    }
-}
-
-@("Version Comparison")
-unittest {
-    SbVersion ver_ = SbVersion(1, 0, 0);
-    SbVersion ver2_ = SbVersion(2, 0, 0);
-    assert(ver_ < ver2_);
-    assert(ver2_ > ver_);
-    assert(ver_ == ver_);
-    
-    ver_ = SbVersion(0, 1, 0);
-    ver2_ = SbVersion(0, 2, 0);
-    assert(ver_ < ver2_);
-    assert(ver2_ > ver_);
-    assert(ver_ == ver_);
-    
-    ver_ = SbVersion(0, 0, 1);
-    ver2_ = SbVersion(0, 0, 2);
-    assert(ver_ < ver2_);
-    assert(ver2_ > ver_);
-    assert(ver_ == ver_);
-}
+@nogc:
 
 /**
-    A Soba Application
-
-    The application manages windows, event loops, and such.
-    There can only be one active application per exeuction context.
+    Initialize Soba
 */
-class SbApp {
-private:
-    SbApplicationWindow mainwindow;
-    SbWindow[] windows;
+void sbInit() {
+    auto sdlSupport = loadSDL("libSDL2.dylib");
+    if (sdlSupport == SDLSupport.noLibrary)
+        throw nogc_new!Exception("Could not find a valid SDL2 library!");
 
-    void eventLoop() {
-        SDL_Event ev;
-        while (!mainwindow.isClosed()) {
-            while(SDL_PollEvent(&ev)) {
-                switch(ev.type) {
-                    case SDL_WINDOWEVENT:
-                        if (mainwindow.getID == ev.window.windowID) mainwindow.onWindowEvent(ev.window);
-                        foreach(window; windows) {
-                            if (window.getID == ev.window.windowID) {
-                                window.onWindowEvent(ev.window);
-                                break;
-                            }
-                        }
-                        break;
-                    
-                    default: break;
-                }
-            }
+    SDL_Init(SDL_INIT_EVERYTHING);
 
-            mainwindow.onUpdate();
-            foreach(window; windows) {
-                window.onUpdate();
-            }
-        }
-    }
+    auto cairoSupport = loadCairo();
+    if (cairoSupport == cairoSupport.noLibrary)
+        throw nogc_new!Exception("Could not find a valid Cairo library!");
+}
 
-package(soba):
-    void addWindow(SbWindow window) {
-        windows ~= window;
-    }
-
-    void removeWindow() {
-
-    }
-
+struct SbApplication {
+nothrow @nogc:
 public:
-    /**
-        Name of the application in reverse domain notation
-    */
-    string name;
-    
-    /**
-        Human-readable of the application
-    */
-    string humanName;
-
-    /**
-        Version number of the application
-    */
-    SbVersion version_;
-
-    this(string name, string humanName, SbVersion version_, SbGPUContextType contextType = SbGPUContextType.Auto) {
-        this.name = name;
-        this.humanName = humanName;
-        this.version_= version_;
-        sbGPUInit(sbGPUResolveContextType(contextType));
-        sbCurrApp_ = this;
-    }
-
-    /**
-        Starts the app
-    */
-    int run(SbApplicationWindow window) {
-        this.mainwindow = window;
-        mainwindow.show();
-        this.eventLoop();
-        return 0;
-    }
+    nstring appName;
 }
 
-/**
-    Gets the current application
-*/
-ref SbApp sbGetApplication() {
-    return sbCurrApp_;
+void sbRunApplication(SbMainWindow window) {
+    window.show();
+    try {
+        while(!window.isCloseRequested()) {
+            if (sbPumpEventQueue()) break;
+        }
+
+        nogc_delete(window);
+    } catch(Exception ex) {
+        import core.stdc.stdio : printf;
+        nstring str = ex.msg;
+        printf("FATAL ERROR: %s", str.toCString());
+        nogc_delete(ex);
+    }
 }

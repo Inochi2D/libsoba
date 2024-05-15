@@ -1,0 +1,12 @@
+SbDrawingContext
+ * Add SbCairoContext
+ * Add SVG support
+ * Vector animation support?
+ * Optimise surfaces by only uploading dirty rects
+ * Clean up prototype mess by making SbBackingWindow refer to the SbWindow that owns it.
+
+Event System
+ * Finish keyboard navigation handling
+ * Add text entry support
+   * Additionally support IME through the extended SDL IME support.
+   * Draw our own composition box?

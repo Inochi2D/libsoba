@@ -4,17 +4,60 @@ authors "Inochi2D Project"
 copyright "Copyright © 2023, Inochi2D Project"
 license "BSD 2-clause"
 
-dependency "i2d-opengl" version="~>1.0.0"
-dependency "gamut" version="~>2.0.9"
-dependency "silly" version="~>1.1.1"
-dependency "colorize" version="~>1.0.5"
-dependency "imagefmt" version="~>2.1.2"
-dependency "i2d-wgpu" version="~>0.15.0"
-dependency "bindbc-freetype" version="~>1.0.5"
-dependency "bindbc-sdl" version="~>1.3.3"
-dependency "i18n-d" version="~>1.0.1"
-dependency "inmath" version="~>1.0.5"
-targetPath "out/"
-copyFiles "libs/win32/SDL2.dll" platform="windows"
+dependency "numem" version="~>0.7.1"
+dependency "bindbc-sdl" version="~>1.4.6"
+dependency "inmath" version="~>1.0.6"
+dependency "soba:canvas" version="*"
 
-versions "SDL_2_26" "GL_31" "GL_ARB_texture_filter_anisotropic"
+targetPath "out/"
+workingDirectory "out/"
+stringImportPaths "res/"
+
+copyFiles "libs/README-SDL.txt"
+copyFiles "libs/osx/*.dylib" platform="osx"
+copyFiles "libs/win64/SDL2.dll" platform="windows-x64"
+copyFiles "libs/win32/SDL2.dll" platform="windows-x86"
+
+versions "SDL_2_28"
+
+subPackage {
+	name "canvas"
+	description "Canvas implementation for rendering"
+	authors "Inochi2D Project"
+	copyright "Copyright © 2024, Inochi2D Project"
+	license "BSD-2-Clause"
+
+	dependency "i2d-cairo" version="~>1.0.0"
+	dependency "inmath" version="*"
+	dependency "numem" version="*"
+
+	// TODO: replace with Gamut?
+	dependency "imagefmt" version="*"
+	
+	sourcePaths "canvas/soba/"
+}
+
+// macOS builds
+configuration "metal-osx" {
+	platforms "osx"
+	dependency "d-metal-binding" version="~>2.0.21"
+	targetType "executable"
+	versions "SbMetal"
+}
+
+// iOS/iPadOS builds
+configuration "metal-ios" {
+	platforms "ios"
+	dependency "d-metal-binding" version="~>2.0.21"
+
+	lflags "-framework" "CoreData" "-framework" "CoreGraphics" "-framework" "Foundation" "-framework" "Metal" "-framework" "UIKit" "-all_load"
+	targetType "executable"
+	versions "SbMetal" "SbIOS"
+}
+
+// Builds for every other platform
+configuration "gl" {
+	dependency "bindbc-opengl" version="~>1.1.0"
+	targetType "executable"
+	versions "SbGL"
+}
