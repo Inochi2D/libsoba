@@ -50,7 +50,12 @@ public:
 
 int main() {
     sbInit();
-    SbApp myApp = new SbApp("Test", "Test", SbVersion(1, 0, 0, ""));
-    return myApp.run(new MyApplication(myApp));
+
+    SbAppInfo info;
+    info.name = nstring("My Cool App");
+    info.version_ = nstring("1.0.0");
+
+    SbApplication app = nogc_new!SbApplication(info);
+    return app.run(nogc_new!MyApplication(app, 640, 480));
 }
 ```
