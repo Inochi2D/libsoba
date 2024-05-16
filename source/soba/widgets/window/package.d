@@ -184,4 +184,26 @@ public:
 
         return recti.init;
     }
+
+    override
+    void onUserCopy() {
+        if (isFocused()) {
+            SbEventLoop.instance.getFocus().onUserCopy();
+        }
+    }
+
+    override
+    void onUserPaste() {
+        if (isFocused()) {
+            SbEventLoop.instance.getFocus().onUserPaste();
+        }
+    }
+
+    /**
+        Sets the widget which is focused by the window
+    */
+    final
+    void setFocus(SbWidget widget) {
+        SbEventLoop.instance.setFocus(widget);
+    }
 }

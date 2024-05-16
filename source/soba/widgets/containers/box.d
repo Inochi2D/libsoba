@@ -4,6 +4,7 @@ import soba.widgets.widget;
 import soba.drawing.contexts;
 import soba.core.math;
 import numem.all;
+import core.stdc.stdio;
 
 enum SbBoxDirection {
     Horizontal,
@@ -26,7 +27,7 @@ protected:
             targetSelfBounds = parent.getBounds();
         }
 
-        if (SbBoxDirection.Horizontal) {
+        if (direction == SbBoxDirection.Horizontal) {
             if (fitContents) {
                 float tallestRequest = 0;
                 foreach(child; this.getChildren()) {
@@ -40,13 +41,18 @@ protected:
 
             // Figure out the height of every widget inside.
             recti dimensions = this.getBounds();
-            
-            SbWidget[] children = this.getChildren();
-            float sectionWidth = dimensions.x/children.length;
-            foreach(i, child; this.getChildren()) {
-                float section = cast(float)i/cast(float)children.length;
-                child.setBounds(recti(cast(int)(section*sectionWidth), dimensions.y, cast(int)sectionWidth, dimensions.height));
-            }
+                SbWidget[] children = this.getChildren();
+                float sectionWidth = targetSelfBounds.width/children.length;
+                float sectionX = 0;
+                foreach(i, child; children) {
+                    float request = max(child.getRequestedSize().x, child.getMinimumSize().x);
+                    if (evenSpacing) {
+                        child.setBounds(recti(cast(int)sectionX, dimensions.y, cast(int)sectionWidth, dimensions.height));
+                        sectionX += sectionWidth;
+                    } else {
+                        // child.
+                    }
+                }
         } else {
             if (fitContents) {
                 float widestRequest = 0;
@@ -61,12 +67,13 @@ protected:
 
             // Figure out the height of every widget inside.
             recti dimensions = this.getBounds();
-
+            
             SbWidget[] children = this.getChildren();
-            float sectionHeight = dimensions.y/children.length;
-            foreach(i, child; this.getChildren()) {
-                float section = cast(float)i/cast(float)children.length;
-                child.setBounds(recti(dimensions.x, cast(int)(section*sectionHeight), dimensions.width, cast(int)sectionHeight));
+            float sectionHeight = targetSelfBounds.height/children.length;
+            float sectionY = 0;
+            foreach(i, child; children) {
+                child.setBounds(recti(dimensions.x, cast(int)sectionY, dimensions.width, cast(int)sectionHeight));
+                sectionY += sectionHeight;
             }
         }
     }

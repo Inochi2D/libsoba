@@ -11,7 +11,8 @@ private:
     bool dirty;
     recti bounds;
     vec2i requestedSize;
-    vec2i minSize;
+    vec2i minSize = vec2i(0, 0);
+    vec2i maxSize = vec2i(int.max, int.max);
 
     SbWidget parent;
     weak_vector!SbWidget children;
@@ -117,15 +118,6 @@ protected:
         Called when a change happens that'd require reflowing the widget.
     */
     void onReflow() {
-        
-        if (bounds.width < minSize.x) {
-            bounds.width = minSize.x;
-        }
-
-        if (bounds.height < minSize.y) {
-            bounds.height = minSize.y;
-        }
-        
         foreach(child; children) {
             child.onReflow();
         }
@@ -299,6 +291,10 @@ public:
         Sets the bounds of the widget
     */
     SbWidget setBounds(recti bounds) {
+
+        // Force the bounds to be within min-max
+        bounds.width = clamp(bounds.width, minSize.x, maxSize.x);
+        bounds.height = clamp(bounds.height, minSize.y, maxSize.y);
         this.bounds = bounds;
         this.markDirty();
         return this;
@@ -331,6 +327,21 @@ public:
     */
     SbWidget setMinimumSize(vec2i minSize) {
         this.minSize = minSize;
+        return this;
+    }
+
+    /**
+        Gets the requested size of the widget
+    */
+    vec2i getMaximumSize() {
+        return maxSize;
+    }
+
+    /**
+        Sets the requested size of the widget
+    */
+    SbWidget setMaximumSize(vec2i maxSize) {
+        this.maxSize = maxSize;
         return this;
     }
 
@@ -375,4 +386,26 @@ public:
         This may also be used for continuous updates.
     */
     bool onAnimate(float time) { return true; }
+
+    /**
+        Called when the user presses the system copy keyboard shortcut
+    */
+    void onUserCopy() { }
+
+    /**
+        Called when the user presses the system paste keyboard shortcut
+    */
+    void onUserPaste() { }
+
+    /**
+        Gets whether this widget is focused
+    */
+    bool isFocused() {
+        return SbEventLoop.instance.getFocus() && SbEventLoop.instance.getFocus() is this;
+    }
+
+    /**
+        Whether the widget can take the focus
+    */
+    bool isFocusable() { return false; }
 }

@@ -45,7 +45,7 @@ public:
         super(SbWindowStyle.MainWindow, SbWindowFlags.Resizable);
 
         this.app = app;
-        this.createBackingWindow(app.appName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
+        this.createBackingWindow(app.getInfo().name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
         
         // Surface and context
         this.surface = sbCreateSurface(this.getBackingWindow());

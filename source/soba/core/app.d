@@ -1,3 +1,9 @@
+/*
+    Copyright © 2023, Inochi2D Project
+    Distributed under the 2-Clause BSD License, see LICENSE file.
+    
+    Authors: Luna Nielsen
+*/
 module soba.core.app;
 import soba.core.events;
 import soba.widgets.window.mainwindow;
@@ -10,38 +16,63 @@ import soba.core.window;
 @nogc:
 
 /**
-    Initialize Soba
+    Information about the application
 */
-void sbInit() {
-    auto sdlSupport = loadSDL("libSDL2.dylib");
-    if (sdlSupport == SDLSupport.noLibrary)
-        throw nogc_new!Exception("Could not find a valid SDL2 library!");
-
-    SDL_Init(SDL_INIT_EVERYTHING);
-
-    auto cairoSupport = loadCairo();
-    if (cairoSupport == cairoSupport.noLibrary)
-        throw nogc_new!Exception("Could not find a valid Cairo library!");
+struct SbAppInfo {
+    nstring name;
+    nstring version_;
 }
 
-struct SbApplication {
+/**
+    Instance of the application.
+*/
+class SbApplication {
 nothrow @nogc:
+private:
+    SbAppInfo appInfo;
+    SbMainWindow rootWindow;
+    SbEventLoop eventLoop;
+
 public:
-    nstring appName;
-}
+    ~this() {
+        nogc_delete(appInfo.name);
+        nogc_delete(appInfo.version_);
+        nogc_delete(rootWindow);
+        nogc_delete(eventLoop);
+    }
 
-void sbRunApplication(SbMainWindow window) {
-    window.show();
-    try {
-        while(!window.isCloseRequested()) {
-            if (sbPumpEventQueue()) break;
+    /**
+        Instantiates the application
+    */
+    this(SbAppInfo appInfo) {
+        this.appInfo = appInfo;
+        eventLoop = nogc_new!SbEventLoop();
+    }
+
+    /**
+        Runs the application
+    */
+    void run(SbMainWindow rootWindow) {
+        this.rootWindow = rootWindow;
+        rootWindow.show();
+        try {
+
+            /// Pump event queue while the root window is meant to run.
+            while(!rootWindow.isCloseRequested()) {
+                if (eventLoop.update()) break;
+            }
+        } catch(Exception ex) {
+            import core.stdc.stdio : printf;
+            nstring str = ex.msg;
+            printf("FATAL ERROR: %s\n", str.toCString());
+            nogc_delete(ex);
         }
+    }
 
-        nogc_delete(window);
-    } catch(Exception ex) {
-        import core.stdc.stdio : printf;
-        nstring str = ex.msg;
-        printf("FATAL ERROR: %s", str.toCString());
-        nogc_delete(ex);
+    /**
+        Gets the base information about the app
+    */
+    SbAppInfo getInfo() {
+        return appInfo;
     }
 }
