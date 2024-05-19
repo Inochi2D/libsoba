@@ -14,6 +14,7 @@ import numem.all;
 
 import soba.canvas.cairo.ctx;
 import soba.canvas.mask;
+import soba.canvas.effect;
 
 /**
     Fill rule
@@ -86,7 +87,7 @@ class SbContext {
 nothrow @nogc:
 private:
     SbCanvas target;
-    vector!(inmath.linalg.rect) clipRects;
+    vector!(recti) clipRects;
 
 public:
 
@@ -312,17 +313,13 @@ public:
     /**
         Adds a clipping rectangle
     */
-    void pushClipRect(inmath.linalg.rect area) {
-        inmath.linalg.rect diff = area;
+    void pushClipRect(recti area) {
+        recti diff = area;
 
         if (clipRects.size() > 0) {
-            inmath.linalg.rect lastClip = clipRects[$-1];
-
-            if (diff.left < lastClip.left) diff.x = lastClip.x;
-            if (diff.top < lastClip.top) diff.y = lastClip.y;
-
-            if (diff.right > lastClip.right) diff.width = diff.right-lastClip.right;
-            if (diff.bottom > lastClip.bottom) diff.height = diff.bottom-lastClip.bottom;
+            recti lastClip = clipRects[$-1];
+            
+            diff.clip(lastClip);
         }
 
         clipRects ~= diff;
@@ -356,7 +353,7 @@ public:
         This memory is owned by the context and should not be freed manually.
     */
     final
-    inmath.linalg.rect[] getClipRects() {
+    recti[] getClipRects() {
         return clipRects[0..$];
     }
 
@@ -366,7 +363,27 @@ public:
         If no clipping is enabled, returns an infinitely big rectangle.
     */
     final
-    inmath.linalg.rect getCurrentClip() {
-        return clipRects.size > 0 ? clipRects[$-1] : inmath.linalg.rect(-float.infinity, -float.infinity, float.infinity, float.infinity);
+    recti getCurrentClip() {
+        return clipRects.size > 0 ? clipRects[$-1] : recti(-1, -1, -1, -1);
+    }
+
+    /**
+        Applies the specified effect to the specified area irrespective of clip rects
+    */
+    final
+    void applyEffect(SbEffect effect, recti clip=recti(-1, -1, -1, -1)) {
+        effect.apply(target, clip);
+    }
+
+    /**
+        Applies the specified effect 
+    */
+    final
+    void applyEffect(SbEffect effect) {
+        if (getClipRectsActive() > 0) {
+            effect.apply(target, getCurrentClip());
+        } else {
+            effect.apply(target, recti(0, 0, target.getWidth(), target.getHeight()));
+        }
     }
 }

@@ -14,6 +14,11 @@ import soba.canvas.cairo.canvas;
 
 enum SbCanvasFormat {
     /**
+        Alpha only data
+    */
+    A8,
+
+    /**
         8-bit RGB data aligned to a 32 bit boundary
     */
     RGB32,
@@ -41,6 +46,9 @@ private:
 
     uint calcStride() {
         final switch(fmt) {
+            case SbCanvasFormat.A8:
+                return w;
+
             case SbCanvasFormat.RGB32:
             case SbCanvasFormat.ARGB32:
                 return w * 4;
@@ -102,6 +110,38 @@ public:
     final
     uint getStride() {
         return stride;
+    }
+
+    /**
+        Gets how many color channels is in the image
+    */
+    final
+    uint getChannels() {
+        final switch(fmt) {
+            case SbCanvasFormat.A8:
+                return 1;
+                
+            case SbCanvasFormat.RGB32:
+                return 3;
+
+            case SbCanvasFormat.ARGB32:
+                return 4;
+        }
+    }
+
+    /**
+        Gets the alignment in bytes of pixels
+    */
+    final
+    uint getAlign() {
+        final switch(fmt) {
+            case SbCanvasFormat.A8:
+                return 1;
+                
+            case SbCanvasFormat.RGB32:
+            case SbCanvasFormat.ARGB32:
+                return 4;
+        }
     }
 
     /**

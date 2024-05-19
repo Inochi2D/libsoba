@@ -11,7 +11,7 @@ import soba.canvas.canvas;
 import soba.canvas.pattern;
 import soba.canvas.mask;
 import math = inmath.linalg;
-import inmath.linalg : vec2, vec3, vec4;
+import inmath.linalg : vec2, vec3, vec4, recti;
 import inmath.math : max, radians, clamp;
 import cairo;
 import soba.canvas.cairo.mask;
@@ -396,7 +396,7 @@ public:
     }
 
     override
-    void pushClipRect(math.rect area) {
+    void pushClipRect(recti area) {
         super.pushClipRect(area);
 
         auto currClip = getCurrentClip();

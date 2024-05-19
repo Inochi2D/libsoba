@@ -6,7 +6,9 @@
 */
 
 module soba.canvas.effect;
+import soba.canvas.canvas;
 import numem.all;
+import inmath;
 
 /**
     A graphical effect applied to a surface
@@ -16,5 +18,5 @@ class SbEffect {
 nothrow @nogc:
 private:
 public:
-
+    abstract void apply(ref SbCanvas canvas, recti clipArea=recti(-1, -1, -1, -1));
 }

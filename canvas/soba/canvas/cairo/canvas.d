@@ -20,6 +20,7 @@ protected:
 
     override
     ubyte* getData() {
+        cairo_surface_flush(surface);
         return cairo_image_surface_get_data(surface);
     }
 
@@ -38,8 +39,13 @@ public:
             case SbCanvasFormat.RGB32:
                 surface = cairo_image_surface_create(cairo_format_t.CAIRO_FORMAT_RGB24, width, height);
                 return;
+                
             case SbCanvasFormat.ARGB32:
                 surface = cairo_image_surface_create(cairo_format_t.CAIRO_FORMAT_ARGB32, width, height);
+                return;
+
+            case SbCanvasFormat.A8:
+                surface = cairo_image_surface_create(cairo_format_t.CAIRO_FORMAT_A8, width, height);
                 return;
         }
     }

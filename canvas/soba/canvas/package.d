@@ -15,6 +15,7 @@ import cairo;
 public import soba.canvas.ctx;
 public import soba.canvas.canvas;
 public import soba.canvas.pattern;
+public import soba.canvas.effects;
 
 private {
     SbCanvasBackend cnvBackend;
