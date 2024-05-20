@@ -2,7 +2,6 @@
 docs.json
 __dummy.html
 docs/
-/soba
 libsoba.so
 libsoba.dylib
 soba.dll
@@ -14,6 +13,7 @@ soba-test-*
 *.obj
 *.lst
 *.a
+*.lib
 .DS_Store
 
 out/
