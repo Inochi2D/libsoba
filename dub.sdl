@@ -28,7 +28,7 @@ subPackage {
 	copyright "Copyright © 2024, Inochi2D Project"
 	license "BSD-2-Clause"
 
-	dependency "i2d-cairo" version="~>1.0.0"
+	dependency "i2d-cairo" version="~>1.0.1"
 	dependency "inmath" version="*"
 	dependency "numem" version="*"
 	dependency "intel-intrinsics" version="~>1.11.18"
