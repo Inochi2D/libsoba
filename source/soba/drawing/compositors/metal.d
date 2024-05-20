@@ -1,4 +1,7 @@
 module soba.drawing.compositors.metal;
+
+version(SbMetal):
+
 import soba.drawing.common;
 import soba.drawing.surfaces;
 import soba.drawing.surfaces.metal;
@@ -36,7 +39,7 @@ private:
         MTLRenderPipelineDescriptor desc = MTLRenderPipelineDescriptor.alloc.initialize();
         desc.vertexFunction = baseShader.newFunctionWithName("vertex_main".ns);
         desc.fragmentFunction = baseShader.newFunctionWithName("fragment_main".ns);
-		desc.colorAttachments[0].pixelFormat = backing.getLayer().pixelFormat;
+        desc.colorAttachments[0].pixelFormat = backing.getLayer().pixelFormat;
         desc.colorAttachments[0].blendingEnabled = true;
         desc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.One;
         desc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.One;

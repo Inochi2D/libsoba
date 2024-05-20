@@ -1,7 +1,6 @@
 module soba.drawing.surfaces.dummy;
 import soba.drawing.common;
 import soba.drawing.surfaces;
-import metal;
 import numem.all;
 
 class SbDummySurface : SbSurface {
@@ -11,7 +10,7 @@ public:
     ~this() {
     }
 
-    this(SbSurfaceFormat format, size_t width, size_t height, MTLDevice device) {
+    this(SbSurfaceFormat format, size_t width, size_t height) {
         super(format, width, height);
     }
 }
