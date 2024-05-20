@@ -18,7 +18,7 @@ import numem.all;
     Initialize Soba
 */
 void sbInit() {
-    auto sdlSupport = loadSDL("libSDL2.dylib");
+    auto sdlSupport = loadSDL();
     if (sdlSupport == SDLSupport.noLibrary)
         throw nogc_new!Exception("Could not find a valid SDL2 library!");
 
