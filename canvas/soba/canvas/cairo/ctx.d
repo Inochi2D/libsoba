@@ -48,6 +48,11 @@ private:
         }
     }
 
+    pragma(inline, true)
+    bool isInMaskImpl(vec2 point) {
+        return cast(bool)cairo_in_clip(cr, point.x, point.y);
+    }
+
 public:
 
     /**
@@ -220,6 +225,7 @@ public:
     override
     shared_ptr!SbMask fillMask() {
         cairo_path_t* path = cairo_copy_path(cr);
+        
         if (path.num_data == 0) {
             cairo_path_destroy(path);
 
@@ -250,20 +256,32 @@ public:
 
     override
     bool isInMask(vec2 point) {
-        return cast(bool)cairo_in_clip(cr, point.x, point.y);
+
+        // Convert to screen coordinates
+        double dx = point.x, dy = point.y;
+        cairo_device_to_user(cr, &dx, &dy);
+        point.x = cast(float)dx;
+        point.y = cast(float)dy;
+
+        return isInMaskImpl(point);
     }
 
     override
     bool isInMask(vec2i point) {
         enum SB_MASK_SEARCH_EPSILON = 0.5;
+
+        // Convert to screen coordinates
+        double dx = point.x, dy = point.y;
+        cairo_device_to_user(cr, &dx, &dy);
+        point.x = cast(int)dx;
+        point.y = cast(int)dy;
+
         return 
-            isInMask(vec2(point.x-SB_MASK_SEARCH_EPSILON, point.y)) ||
-            isInMask(vec2(point.x+SB_MASK_SEARCH_EPSILON, point.y)) ||
-            isInMask(vec2(point.x, point.y-SB_MASK_SEARCH_EPSILON)) ||
-            isInMask(vec2(point.x, point.y+SB_MASK_SEARCH_EPSILON)) ||
-            isInMask(vec2(point.x-SB_MASK_SEARCH_EPSILON, point.y-SB_MASK_SEARCH_EPSILON)) ||
-            isInMask(vec2(point.x+SB_MASK_SEARCH_EPSILON, point.y+SB_MASK_SEARCH_EPSILON)) ||
-            isInMask(vec2(point.x, point.y));
+            isInMaskImpl(vec2(point.x-SB_MASK_SEARCH_EPSILON, point.y)) ||
+            isInMaskImpl(vec2(point.x+SB_MASK_SEARCH_EPSILON, point.y)) ||
+            isInMaskImpl(vec2(point.x, point.y-SB_MASK_SEARCH_EPSILON)) ||
+            isInMaskImpl(vec2(point.x, point.y+SB_MASK_SEARCH_EPSILON)) ||
+            isInMaskImpl(vec2(point.x, point.y));
 
     }
 
