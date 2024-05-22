@@ -11,7 +11,7 @@ import soba.canvas.canvas;
 import soba.canvas.pattern;
 import soba.canvas.mask;
 import math = inmath.linalg;
-import inmath.linalg : vec2, vec3, vec4, recti;
+import inmath.linalg : vec2, vec3, vec4, recti, vec2i;
 import inmath.math : max, radians, clamp;
 import cairo;
 import soba.canvas.cairo.mask;
@@ -23,6 +23,7 @@ private:
     cairo_t* cr;
     SbBlendOperator op;
     shared_ptr!SbMask currentMask;
+    bool hasMask = false;
 
     void applyClipRects() {
         cairo_reset_clip(cr);
@@ -38,9 +39,11 @@ private:
         cairo_reset_clip(cr);
 
         if (currentMask.get() && currentMask.getParent() is this) {
+            hasMask = true;
             cairo_append_path(cr, cast(cairo_path_t*)currentMask.getHandle());
             cairo_clip(cr);
         } else {
+            hasMask = false;
             this.applyClipRects();
         }
     }
@@ -229,13 +232,13 @@ public:
     
     override
     void setMask(shared_ptr!SbMask mask) {
-        this.currentMask = mask;
 
         // Clear smart pointer
         if (currentMask.get() !is null) {
             nogc_delete(currentMask);
         }
 
+        this.currentMask = mask;
         this.applyMask();
     }
     
@@ -243,6 +246,30 @@ public:
     void clearMask() {
         nogc_delete(currentMask);
         this.applyMask();
+    }
+
+    override
+    bool isInMask(vec2 point) {
+        return cast(bool)cairo_in_clip(cr, point.x, point.y);
+    }
+
+    override
+    bool isInMask(vec2i point) {
+        enum SB_MASK_SEARCH_EPSILON = 0.5;
+        return 
+            isInMask(vec2(point.x-SB_MASK_SEARCH_EPSILON, point.y)) ||
+            isInMask(vec2(point.x+SB_MASK_SEARCH_EPSILON, point.y)) ||
+            isInMask(vec2(point.x, point.y-SB_MASK_SEARCH_EPSILON)) ||
+            isInMask(vec2(point.x, point.y+SB_MASK_SEARCH_EPSILON)) ||
+            isInMask(vec2(point.x-SB_MASK_SEARCH_EPSILON, point.y-SB_MASK_SEARCH_EPSILON)) ||
+            isInMask(vec2(point.x+SB_MASK_SEARCH_EPSILON, point.y+SB_MASK_SEARCH_EPSILON)) ||
+            isInMask(vec2(point.x, point.y));
+
+    }
+
+    override
+    bool isMasked() {
+        return hasMask;
     }
 
     override

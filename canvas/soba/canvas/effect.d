@@ -7,6 +7,7 @@
 
 module soba.canvas.effect;
 import soba.canvas.canvas;
+import soba.canvas.ctx;
 import numem.all;
 import inmath;
 import inteli.emmintrin;
@@ -72,5 +73,5 @@ protected:
         }
     }
 public:
-    abstract void apply(ref SbCanvas canvas, recti clipArea=recti(-1, -1, -1, -1));
+    abstract void apply(SbContext context, recti clipArea=recti(0, 0, int.max, int.max));
 }

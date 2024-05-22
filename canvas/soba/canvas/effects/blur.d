@@ -7,6 +7,7 @@
 module soba.canvas.effects.blur;
 import soba.canvas.effect;
 import soba.canvas.canvas;
+import soba.canvas.ctx;
 import numem.all;
 import inmath;
 import core.stdc.stdio : printf;
@@ -24,13 +25,19 @@ private:
     uint blurSigma;
 
     // SIMD
-    void blurSSE(bool direction)(ref SbCanvas canvas, recti area)  {
+    void blurSSE(bool direction)(ref SbContext ctx, recti area)  {
+        SbCanvas canvas = ctx.getTarget();
         ptrdiff_t alignment = canvas.getAlign();
         ptrdiff_t stride = canvas.getStride();
         ubyte* data = canvas.lock();
 
         foreach(y; area.top..area.bottom) {
             foreach(x; area.left..area.right) {
+
+                // Skip area that isn't in mask
+                if (ctx.isMasked()) {
+                    if (!ctx.isInMask(vec2i(x, y))) continue;
+                }
                 
                 int sumCount = 1;
                 __m128i sum = getPixelSSE(data, vec2i(x, y), alignment, stride);
@@ -82,13 +89,19 @@ private:
     }
 
     // NO SIMD
-    void blur(bool direction)(ref SbCanvas canvas, recti area) {
+    void blur(bool direction)(ref SbContext ctx, recti area) {
+        SbCanvas canvas = ctx.getTarget();
         ptrdiff_t alignment = canvas.getAlign();
         ptrdiff_t stride = canvas.getStride();
         ubyte* data = canvas.lock();
 
         foreach(y; area.top..area.bottom) {
             foreach(x; area.left..area.right) {
+
+                // Skip area that isn't in mask
+                if (ctx.isMasked()) {
+                    if (!ctx.isInMask(vec2i(x, y))) continue;
+                }
 
                 // Largest pixel size possible is 4-byte aligned.
                 int sumCount = 1;
@@ -174,23 +187,20 @@ public:
         Applies the blur
     */
     override
-    void apply(ref SbCanvas canvas, recti clipArea) {
+    void apply(SbContext ctx, recti clipArea) {
 
         // Make sure we don't try reading pixels in invalid memory
-        clipArea.clip(recti(0, 0, canvas.getWidth(), canvas.getHeight()));
+        clipArea.clip(recti(0, 0, ctx.getTarget().getWidth(), ctx.getTarget().getHeight()));
         static if (!SSESizedVectorsAreEmulated) {
-            this.blurSSE!true(canvas, clipArea);
-            this.blurSSE!false(canvas, clipArea);
+            this.blurSSE!true(ctx, clipArea);
+            this.blurSSE!false(ctx, clipArea);
         } else {
-            this.blur!true(canvas, clipArea);
-            this.blur!false(canvas, clipArea);
+            this.blur!true(ctx, clipArea);
+            this.blur!false(ctx, clipArea);
         }
     }
 }
 
-/**
-    A (slower) gaussian blur effect
-*/
 class SbGaussianBlurEffect : SbEffect {
 nothrow @nogc:
 private:
@@ -224,15 +234,21 @@ private:
 
 
     // SIMD
-    void blurSSE(bool direction)(ref SbCanvas canvas, recti area)  {
+    void blurSSE(bool direction)(ref SbContext ctx, recti area)  {
+        SbCanvas canvas = ctx.getTarget();
         ptrdiff_t alignment = canvas.getAlign();
         ptrdiff_t stride = canvas.getStride();
         ubyte* data = canvas.lock();
 
         foreach(y; area.top..area.bottom) {
             foreach(x; area.left..area.right) {
+
+                // Skip area that isn't in mask
+                if (ctx.isMasked()) {
+                    if (!ctx.isInMask(vec2i(x, y))) continue;
+                }
+
                 ptrdiff_t kernelCenter = radius;
-                // __m128 sum = _mm_castsi128_ps(getPixelSSE(data, vec2i(x, y), alignment, stride));
                 __m128 sum = _mm_mul_ps(
                     _mm_castsi128_ps(getPixelSSE(data, vec2i(x, y), alignment, stride)), 
                     gaussianKernel[kernelCenter]
@@ -321,13 +337,13 @@ public:
         Applies the blur
     */
     override
-    void apply(ref SbCanvas canvas, recti clipArea) {
+    void apply(SbContext ctx, recti clipArea) {
 
         // Make sure we don't try reading pixels in invalid memory
-        clipArea.clip(recti(0, 0, canvas.getWidth(), canvas.getHeight()));
+        clipArea.clip(recti(0, 0, ctx.getTarget().getWidth(), ctx.getTarget().getHeight()));
         static if (!SSESizedVectorsAreEmulated) {
-            this.blurSSE!true(canvas, clipArea);
-            this.blurSSE!false(canvas, clipArea);
+            this.blurSSE!true(ctx, clipArea);
+            this.blurSSE!false(ctx, clipArea);
         }
     }
 }

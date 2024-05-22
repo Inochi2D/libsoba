@@ -230,6 +230,21 @@ public:
     abstract void clearMask();
 
     /**
+        Gets whether the specified point is within the clipping region
+    */
+    abstract bool isInMask(vec2 point);
+
+    /**
+        Gets whether the specified point is within the clipping region
+    */
+    abstract bool isInMask(vec2i point);
+
+    /**
+        Gets whether a mask is currently active
+    */
+    abstract bool isMasked();
+
+    /**
         Clears the current path
     */
     abstract void clearPath();
@@ -392,7 +407,7 @@ public:
     */
     final
     void applyEffect(SbEffect effect, recti clip=recti(-1, -1, -1, -1)) {
-        effect.apply(target, clip);
+        effect.apply(this, clip);
     }
 
     /**
@@ -401,9 +416,9 @@ public:
     final
     void applyEffect(SbEffect effect) {
         if (getClipRectsActive() > 0) {
-            effect.apply(target, getCurrentClip());
+            effect.apply(this, getCurrentClip());
         } else {
-            effect.apply(target, recti(0, 0, target.getWidth(), target.getHeight()));
+            effect.apply(this, recti(0, 0, target.getWidth(), target.getHeight()));
         }
     }
 }
