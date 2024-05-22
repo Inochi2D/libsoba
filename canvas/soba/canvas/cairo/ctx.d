@@ -5,7 +5,7 @@
     Authors: Luna Nielsen
 */
 
-module canvas.soba.canvas.cairo.ctx;
+module soba.canvas.cairo.ctx;
 import soba.canvas.ctx;
 import soba.canvas.canvas;
 import soba.canvas.pattern;
