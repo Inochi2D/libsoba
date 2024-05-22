@@ -54,8 +54,25 @@ private:
         }
     }
 
+    void premult(ubyte[] data) {
+        for (int k;   k < data.length; k+=4) {
+            float r = cast(float)data[k  ]/255.0;
+            float g = cast(float)data[k+1]/255.0;
+            float b = cast(float)data[k+2]/255.0;
+            float a = cast(float)data[k+3]/255.0;
+
+            data[k  ] = cast(ubyte)((r*a)*255.0);
+            data[k+1] = cast(ubyte)((g*a)*255.0);
+            data[k+2] = cast(ubyte)((b*a)*255.0);
+            data[k+3] = data[k+3];
+        }
+    }
+
     void setFromImage(ref IFImage img) {
         if (img.c == 4) {
+
+            // Premultiply alpha
+            this.premult(img.buf8);
 
             // Align to ARGB
             pixels.resize(img.buf8.length);
