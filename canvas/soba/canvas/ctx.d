@@ -281,6 +281,26 @@ public:
     abstract void closePath();
 
     /**
+        Translate the drawn elements
+    */
+    abstract void translate(vec2 pos);
+
+    /**
+        Rotate the drawn elements
+    */
+    abstract void rotate(float radians);
+
+    /**
+        Scale the drawn elements
+    */
+    abstract void scale(vec2 scale);
+
+    /**
+        Resets the transform
+    */
+    abstract void resetTransform();
+
+    /**
         Returns the position of the cursor in the current path.
     */
     abstract vec2 getPathCursorPos();

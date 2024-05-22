@@ -5,7 +5,7 @@
     Authors: Luna Nielsen
 */
 
-module soba.canvas.cairo.ctx;
+module canvas.soba.canvas.cairo.ctx;
 import soba.canvas.ctx;
 import soba.canvas.canvas;
 import soba.canvas.pattern;
@@ -353,6 +353,26 @@ public:
     override
     void closePath() {
         cairo_close_path(cr);
+    }
+
+    override
+    void translate(vec2 pos) {
+        cairo_translate(cr, pos.x, pos.y);
+    }
+
+    override
+    void rotate(float radians) {
+        cairo_rotate(cr, radians);
+    }
+
+    override
+    void scale(vec2 scale) {
+        cairo_scale(cr, scale.x, scale.y);
+    }
+
+    override
+    void resetTransform() {
+        cairo_identity_matrix(cr);
     }
 
     override

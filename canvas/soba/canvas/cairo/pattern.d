@@ -109,15 +109,17 @@ public:
     */
     override
     void setMatrix(mat3 matrix) {
-        mat.xx = matrix[0][0];
-
-        mat.xy = matrix[1][0];
-        mat.yx = matrix[0][1];
-        mat.yy = matrix[1][1];
 
         // Affine translation
-        mat.x0 = matrix[0][2];
-        mat.y0 = matrix[1][2];
+        mat.x0 = -matrix[0][2];
+        mat.y0 = -matrix[1][2];
+
+        matrix.invert();
+
+        mat.xx = matrix[0][0];
+        mat.xy = matrix[0][1];
+        mat.yx = matrix[1][0];
+        mat.yy = matrix[1][1];
 
         cairo_pattern_set_matrix(pattern, &mat);
     }
