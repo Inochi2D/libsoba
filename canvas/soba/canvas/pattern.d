@@ -9,6 +9,7 @@ module soba.canvas.pattern;
 import numem.all;
 import inmath.linalg;
 import soba.canvas;
+import soba.canvas.image;
 
 import soba.canvas.cairo.pattern;
 
@@ -172,4 +173,69 @@ public:
     }
 }
 
-// TODO: Add image source
+/**
+    A pattern made from a passed SbImage
+    This SbImagePattern does NOT own the SbImage memory.
+
+    SbImage needs to be freed seperately.
+*/
+abstract
+class SbImagePattern : SbPattern {
+nothrow @nogc:
+private:
+    SbImage image;
+
+public:
+
+    ~this() {
+
+        // Just in case that D thinks it should delete image.
+        image = null;
+    }
+
+    /**
+        Constructor
+    */
+    this(SbImage image) {
+        this.image = image;
+    }
+
+    /**
+        Gets the image this pattern is reading from
+    */
+    ref SbImage getImage() {
+        return image;
+    }
+
+    /**
+        Gets the width of the image
+    */
+    uint getWidth() {
+        return image.getWidth();
+    }
+
+    /**
+        Gets the height of the image
+    */
+    uint getHeight() {
+        return image.getHeight();
+    }
+
+    /**
+        Creates a image pattern
+    */
+    static shared_ptr!SbImagePattern fromImage(SbImage image) {
+        switch(cnvBackendGet()) {
+            default:
+                shared_ptr!SbImagePattern grad;
+                return grad;
+            case SbCanvasBackend.cairo:
+                return shared_ptr!SbImagePattern.fromPtr(nogc_new!SbCairoImagePattern(image));
+        }
+    }
+
+    /**
+        Refresh the pattern data
+    */
+    abstract void refresh();
+}

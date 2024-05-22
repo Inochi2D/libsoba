@@ -60,11 +60,12 @@ public:
     override
     void unlock() {
         super.unlock();
-        cairo_surface_flush(surface);
+        cairo_surface_mark_dirty(surface);
     }
 
     override
     void* getHandle() {
+        cairo_surface_flush(surface);
         return surface;
     }
 

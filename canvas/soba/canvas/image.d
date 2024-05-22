@@ -21,12 +21,14 @@ enum SbImageFormat {
     A8,
 
     /**
-        Alpha-only image, aligned to 4 byte boundary
+        RGB image, aligned to a 4 byte boundary
     */
     RGB,
 
     /**
-        Alpha-only image, aligned to 4 byte boundary
+        RGBA image, aligned to a 4 byte boundary
+        
+        Stored in ARGB order.
     */
     RGBA
 }
@@ -40,17 +42,42 @@ private:
     uint alignment;
 
     SbImageFormat fmt;
-
+    
     void setFmt() {
         switch(channels) {
             default:    fmt = SbImageFormat.None;   return;
             case 1:     fmt = SbImageFormat.A8;     return;
             case 3:     fmt = SbImageFormat.RGB;    return;
-            case 4:     fmt = SbImageFormat.RGBA;   return;
+            case 4:
+                fmt = SbImageFormat.RGBA;
+                return;
+        }
+    }
+
+    void setFromImage(ref IFImage img) {
+        if (img.c == 4) {
+
+            // Align to ARGB
+            pixels.resize(img.buf8.length);
+            conv_rgba2bgra(img.buf8, pixels.toSlice());
+        } else {
+            this.pixels = vector!ubyte(img.buf8);
         }
     }
 
 protected:
+
+    /**
+        Gets the amount of bytes the specified amount of channels
+        is aligned to.
+    */
+    uint getAlignmentForChannels(uint channels) {
+        if (channels <= 1)
+            return channels;
+        return 4;
+    }
+
+public:
 
     /**
         Creates a blank image
@@ -69,7 +96,7 @@ protected:
     this(nstring file) {
 
         IFInfo info = read_info(file.toDString());
-        if (info.e != 0) {
+        if (info.e == 0) {
             this.channels = info.c;
             this.width = info.w;
             this.height = info.h;
@@ -78,33 +105,19 @@ protected:
 
             // Read the image
             IFImage img = read_image(file.toDString, this.alignment);
-            if (img.e != 0) {
-                this.pixels = nogc_new!(vector!ubyte)(img.buf8);
+            if (img.e == 0) {
+                import core.stdc.stdio : printf;
+                printf("awawa!\n");
                 this.setFmt();
+                this.setFromImage(img);
             }
 
             img.free();
         }
     }
 
-    abstract uint getAlignmentForChannels(uint channels);
-
-public:
-
     ~this() {
         nogc_delete(pixels);
-    }
-
-    static SbImage create(uint width, uint height, uint channels) {
-        SbImage img;
-
-        return img;
-    }
-
-    static SbImage create(nstring file) {
-        SbImage img;
-
-        return img;
     }
 
     /**
@@ -139,6 +152,14 @@ public:
     }
 
     /**
+        Gets the amount of channels in the image
+    */
+    final
+    uint getChannels() {
+        return channels;
+    }
+
+    /**
         Gets the format of the image
     */
     final
@@ -155,9 +176,4 @@ public:
     ubyte[] getData() {
         return pixels[0..$];
     }
-
-    /**
-        Gets the underlying handle
-    */
-    abstract void* getHandle();
 }

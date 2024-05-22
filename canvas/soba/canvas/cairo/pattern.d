@@ -1,5 +1,7 @@
 module soba.canvas.cairo.pattern;
 import soba.canvas.pattern;
+import soba.canvas.image;
+import soba.canvas.canvas;
 import cairo;
 import inmath.linalg;
 import numem.all;
@@ -93,7 +95,6 @@ public:
     */
     override
     mat3 getMatrix() {
-        cairo_matrix_t mat;
         cairo_pattern_get_matrix(pattern, &mat);
 
         return mat3(
@@ -108,13 +109,15 @@ public:
     */
     override
     void setMatrix(mat3 matrix) {
-        cairo_matrix_t mat;
         mat.xx = matrix[0][0];
+
         mat.xy = matrix[1][0];
-        mat.x0 = matrix[2][0];
         mat.yx = matrix[0][1];
         mat.yy = matrix[1][1];
-        mat.y0 = matrix[2][1];
+
+        // Affine translation
+        mat.x0 = matrix[0][2];
+        mat.y0 = matrix[1][2];
 
         cairo_pattern_set_matrix(pattern, &mat);
     }
@@ -198,5 +201,55 @@ public:
         int stops;
         cairo_pattern_get_color_stop_count(pattern, &stops);
         return stops;
+    }
+}
+
+
+class SbCairoImagePattern : SbImagePattern {
+nothrow @nogc:
+private:
+    mixin SbCairoPatternImpl;
+
+    cairo_surface_t* surface;
+    cairo_format_t getCairoFormatType() {
+        final switch(this.getImage().getFormat()) {
+            case SbImageFormat.None:    return cairo_format_t.CAIRO_FORMAT_INVALID;
+            case SbImageFormat.A8:      return cairo_format_t.CAIRO_FORMAT_A8;
+            case SbImageFormat.RGB:     return cairo_format_t.CAIRO_FORMAT_RGB24;
+            case SbImageFormat.RGBA:    return cairo_format_t.CAIRO_FORMAT_ARGB32;
+        }
+    }
+
+
+public:
+
+    ~this() {
+        if (surface) {
+            cairo_surface_destroy(surface);
+        }
+    }
+
+    this(SbImage image) {
+        super(image);
+        this.surface = cairo_image_surface_create(
+            this.getCairoFormatType(), 
+            image.getWidth(), 
+            image.getHeight()
+        );
+        this.pattern = cairo_pattern_create_for_surface(surface);
+        this.refresh();
+    }
+
+    override
+    void refresh() {
+        SbImage image = this.getImage();
+        ubyte[] dataSlice = image.getData();
+
+        // Copy to surface
+        auto data = cairo_image_surface_get_data(this.surface);
+        data[0..dataSlice.length] = dataSlice[0..$];
+
+        // Flush the surface.
+        cairo_surface_mark_dirty(this.surface);
     }
 }
