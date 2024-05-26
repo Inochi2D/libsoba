@@ -8,6 +8,7 @@ dependency "numem" version="~>0.7.1"
 dependency "bindbc-sdl" version="~>1.4.6"
 dependency "inmath" version="~>1.1.1"
 dependency "soba:canvas" version="*"
+dependency "soba:ssk" version="*"
 
 targetPath "out/"
 workingDirectory "out/"
@@ -36,14 +37,16 @@ subPackage {
 	// TODO: replace with Gamut?
 	dependency "imagefmt" version="*"
 	
-	sourcePaths "canvas/soba/"
+	targetPath "out/"
+	targetName "sc"
+	sourcePaths "modules/canvas/soba/"
 }
 
-// soba:gpu
+// soba:ssk
 subPackage {
-	name "gpu"
+	name "ssk"
 
-	description "GPU abstraction for libsoba"
+	description "Soba Scene Kit"
 	authors "Inochi2D Project"
 	copyright "Copyright © 2024, Inochi2D Project"
 	license "BSD-2-Clause"
@@ -56,7 +59,9 @@ subPackage {
 	dependency "d-metal-binding" version="*" platform="darwin"
 	versions "SbMetal" platform="darwin"
 
-	sourcePaths "gpu/soba/"
+	targetPath "out/"
+	targetName "ssk"
+	sourcePaths "modules/ssk/soba/"
 }
 
 // macOS builds
