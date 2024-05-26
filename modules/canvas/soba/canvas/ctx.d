@@ -5,6 +5,9 @@
     Authors: Luna Nielsen
 */
 
+/**
+    Soba Canvas Rendering Context
+*/
 module soba.canvas.ctx;
 import soba.canvas.canvas;
 import soba.canvas.pattern;

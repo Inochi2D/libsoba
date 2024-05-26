@@ -4,6 +4,10 @@
     
     Authors: Luna Nielsen
 */
+
+/**
+    Soba Canvas Masking
+*/
 module soba.canvas.mask;
 import soba.canvas.canvas;
 import soba.canvas.ctx;

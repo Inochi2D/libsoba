@@ -6,7 +6,7 @@
 */
 
 /**
-    Soba Canvas implementation
+    Soba Canvas
 */
 module soba.canvas;
 import soba.canvas.ctx;

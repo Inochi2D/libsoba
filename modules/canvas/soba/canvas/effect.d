@@ -5,6 +5,9 @@
     Authors: Luna Nielsen
 */
 
+/**
+    Soba Canvas Effects
+*/
 module soba.canvas.effect;
 import soba.canvas.canvas;
 import soba.canvas.ctx;

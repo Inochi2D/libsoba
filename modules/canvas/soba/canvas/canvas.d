@@ -5,6 +5,9 @@
     Authors: Luna Nielsen
 */
 
+/**
+    Soba Canvas Backing Canvas
+*/
 module soba.canvas.canvas;
 import soba.canvas;
 import numem.all;

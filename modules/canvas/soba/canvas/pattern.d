@@ -5,6 +5,9 @@
     Authors: Luna Nielsen
 */
 
+/**
+    Soba Canvas Patterns
+*/
 module soba.canvas.pattern;
 import numem.all;
 import inmath.linalg;

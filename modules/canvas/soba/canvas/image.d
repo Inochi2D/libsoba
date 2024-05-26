@@ -4,6 +4,10 @@
     
     Authors: Luna Nielsen
 */
+
+/**
+    Soba Canvas Bitmaps
+*/
 module soba.canvas.image;
 import soba.canvas.pattern;
 import imagefmt;

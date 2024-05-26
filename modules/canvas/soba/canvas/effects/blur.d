@@ -4,6 +4,10 @@
     
     Authors: Luna Nielsen
 */
+
+/**
+    Soba Canvas Blur Effects
+*/
 module soba.canvas.effects.blur;
 import soba.canvas.effect;
 import soba.canvas.canvas;
