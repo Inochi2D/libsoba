@@ -14,9 +14,17 @@ With a design combining the sensibilities of retained UI and immediate UI Soba a
 
 Soba is however only made for application development, it is not suitable for things such as creating desktop environments.
 
-## Why the name "Soba"?
+## Soba submodules
+Soba consists of a main library and multiple smaller reusable sub-libraries.  
+These libraries provides core functionality in a more cross platform way.
 
-libsoba spawned from an earlier project I worked on while working on Glimpse Image Editor. 
+The current modules are:  
+ * `soba:canvas` - Soba Canvas  
+   Provides vector rendering functionality.  
+
+ * `soba:ssk` - Soba Scene Kit  
+   Provides a portable scene graph for compositing UI surfaces using GPUs.  
+
 
 ## How do I open a Window?
 
