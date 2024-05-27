@@ -15,6 +15,7 @@ workingDirectory "out/"
 stringImportPaths "res/"
 
 copyFiles "libs/README-SDL.txt"
+copyFiles "LICENSE.md"
 copyFiles "libs/osx/*.dylib" platform="osx"
 copyFiles "libs/win64/SDL2.dll" platform="windows-x64"
 copyFiles "libs/win32/SDL2.dll" platform="windows-x86"
@@ -57,8 +58,9 @@ subPackage {
 	dependency "bindbc-opengl" version="*"
 
 	// Metal support on OSX and iOS platforms
-	dependency "d-metal-binding" version="*" platform="darwin"
-	versions "SbMetal" platform="darwin"
+	dependency "d-metal-binding" version="*" optional=true
+	versions "SbMetal" platform="osx"
+	versions "SbMetal" platform="ios"
 
 	targetPath "out/"
 	targetName "ssk"
