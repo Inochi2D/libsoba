@@ -1,6 +1,6 @@
 module soba.drawing.compositors.metal;
 
-version(SbMetal):
+version(SbApple):
 
 import soba.drawing.common;
 import soba.drawing.surfaces;

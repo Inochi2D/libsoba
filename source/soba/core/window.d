@@ -13,7 +13,7 @@ import inmath;
 
 public import bindbc.sdl : SDL_HitTestResult;
 
-version(SbMetal) import metal;
+version(SbApple) import metal;
 else import bindbc.opengl;
 
 private {
@@ -36,7 +36,7 @@ private:
     SbCompositor compositor;
 
     // Metal specific implementation
-    version(SbMetal) {
+    version(SbApple) {
         import soba.drawing.compositors.metal : SbMetalCompositor;
 
         MTLDevice device;
@@ -89,7 +89,7 @@ public:
         Constructs a new backing window
     */
     this(nstring title, int x, int y, int width, int height, uint flags) {
-        version(SbMetal) {
+        version(SbApple) {
             flags |= SDL_WINDOW_METAL;
         } else {
             flags |= SDL_WINDOW_OPENGL;
@@ -134,7 +134,7 @@ public:
         Makes the window's context current
     */
     void makeCurrent() {
-        version(SbMetal) { }
+        version(SbApple) { }
         else SDL_GL_MakeCurrent(window, ctx);
     }
 
@@ -169,7 +169,7 @@ public:
     */
     final
     void setFramebufferSize(float width, float height) {
-        version(SbMetal) {
+        version(SbApple) {
             layer.drawableSize = CGSize(width, height);
             this.compositor.resize(cast(size_t)width, cast(size_t)height);
         }
@@ -180,7 +180,7 @@ public:
     */
     final
     vec2 getFramebufferSize() {
-        version(SbMetal) {
+        version(SbApple) {
             int w, h;
             SDL_Metal_GetDrawableSize(window, &w, &h);
             return vec2(w, h);
@@ -206,7 +206,7 @@ public:
         SDL_SetWindowResizable(window, resizeAllowed);
     }
 
-    version(SbMetal) {
+    version(SbApple) {
         /**
             Returns the underlying device
         */

@@ -57,37 +57,39 @@ subPackage {
 	dependency "inmath" version="*"
 	dependency "bindbc-opengl" version="*"
 
-	// Metal support on OSX and iOS platforms
-	dependency "d-metal-binding" version="*" optional=true
-	versions "SbMetal" platform="osx"
-	versions "SbMetal" platform="ios"
-
 	targetPath "out/"
 	targetName "ssk"
 	sourcePaths "modules/ssk/soba/"
+
+	// Apple platforms have metal support
+	configuration "apple" {
+		platforms "osx" "ios"
+		dependency "d-metal-binding" version="*" optional=true
+		versions "SbApple"
+	}
+
+	// Every other platform than apple
+	configuration "portable" {
+		excludedSourceFiles "modules/ssk/soba/metal/*.*"
+	}
 }
 
-// macOS builds
-configuration "metal-osx" {
-	platforms "osx"
-	dependency "d-metal-binding" version="~>2.0.21"
+// Apple platform builds
+configuration "apple" {
+	platforms "osx" "ios"
 	targetType "executable"
-	versions "SbMetal"
-}
+	versions "SbApple"
 
-// iOS/iPadOS builds
-configuration "metal-ios" {
-	platforms "ios"
+	subConfiguration "soba:ssk" "apple"
+
 	dependency "d-metal-binding" version="~>2.0.21"
 
-	lflags "-framework" "CoreData" "-framework" "CoreGraphics" "-framework" "Foundation" "-framework" "Metal" "-framework" "UIKit" "-all_load"
-	targetType "executable"
-	versions "SbMetal" "SbIOS"
+	lflags "-framework" "UIKit" platform="ios"
+	lflags "-framework" "CoreData" "-framework" "CoreGraphics" "-framework" "Foundation" "-framework" "Metal" "-all_load"
 }
 
 // Builds for every other platform
-configuration "gl" {
-	dependency "bindbc-opengl" version="~>1.1.0"
-	targetType "executable"
-	versions "SbGL"
+configuration "portable" {
+	targetType "autodetect"
+	subConfiguration "soba:ssk" "portable"
 }

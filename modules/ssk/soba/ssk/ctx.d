@@ -119,7 +119,7 @@ public:
 
 extern(C) SSKContext sskContextCreateForMetal(void* mtllayer) {
     static if (SSKIsApplePlatform) {
-
+        return null;
     } else {
 
         // Not apple

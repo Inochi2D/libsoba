@@ -113,7 +113,7 @@ public:
 }
 
 SbSurface sbCreateSurface(SbBackingWindow backing) {
-    version(SbMetal) {
+    version(SbApple) {
         import soba.drawing.surfaces.metal : SbMetalSurface;
 
         auto size = backing.getFramebufferSize();

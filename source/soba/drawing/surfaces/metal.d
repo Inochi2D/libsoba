@@ -4,7 +4,7 @@ import soba.drawing.surfaces;
 import numem.all;
 import inmath;
 
-version(SbMetal):
+version(SbApple):
 import metal;
 
 class SbMetalSurface : SbSurface {
