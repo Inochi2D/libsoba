@@ -4,7 +4,7 @@ authors "Inochi2D Project"
 copyright "Copyright © 2023, Inochi2D Project"
 license "BSD 2-clause"
 
-dependency "numem" version="~>0.7.1"
+dependency "numem" version="~>0.8.1"
 dependency "bindbc-sdl" version="~>1.4.6"
 dependency "inmath" version="~>1.1.1"
 dependency "soba:canvas" version="*"
@@ -53,6 +53,7 @@ subPackage {
 
 	// Base OpenGL backend
 	dependency "numem" version="*"
+	dependency "inmath" version="*"
 	dependency "bindbc-opengl" version="*"
 
 	// Metal support on OSX and iOS platforms
