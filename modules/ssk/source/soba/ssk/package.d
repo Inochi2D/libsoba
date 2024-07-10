@@ -15,3 +15,4 @@ public import soba.ssk.ex;
 public import soba.ssk.appl;
 public import soba.ssk.node;
 public import soba.ssk.nodes;
+public import soba.ssk.texture;

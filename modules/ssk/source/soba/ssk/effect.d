@@ -10,6 +10,8 @@
 */
 module soba.ssk.effect;
 
+import soba.ssk.ctx;
+
 
 /**
     Effects which can be applied to the rendering of SSKNodes
@@ -18,7 +20,13 @@ module soba.ssk.effect;
 */
 abstract
 class SSKEffect {
+protected:
+    SSKContext ctx;
+
 @nogc:
+    this(SSKContext ctx) {
+        this.ctx = ctx;
+    }
 
     /**
         Returns the handle of the effect.

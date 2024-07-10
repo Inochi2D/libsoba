@@ -1,0 +1,23 @@
+name "sio"
+description "Soba IO Kit"
+authors "Inochi2D Project"
+copyright "Copyright © 2024, Inochi2D Project"
+license "BSD-2-Clause"
+
+dependency "numem" version="~>0.8.1"
+dependency "bindbc-sdl" version="~>1.4.6"
+dependency "inmath" version="~>1.1.1"
+dependency "intel-intrinsics" version="~>1.11.18"
+
+// TODO: replace with Gamut?
+dependency "imagefmt" version="*"
+
+targetPath "out/"
+targetName "sc"
+
+copyFiles "libs/README-SDL.txt"
+copyFiles "libs/osx/*.dylib" platform="osx"
+copyFiles "libs/win64/SDL2.dll" platform="windows-x64"
+copyFiles "libs/win32/SDL2.dll" platform="windows-x86"
+
+versions "SDL_2_28"
