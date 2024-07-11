@@ -431,8 +431,10 @@ public:
     */
     final
     void setOnWindowHitTest(evOnWindowHitFunc func) {
-        this.evOnWindowHit = func;
-        SDL_SetWindowHitTest(handle, func ? &_SDL_HitTest_Impl : null, cast(void*)this);
+        if (wStyle == SIOWindowStyle.sioWindow) {
+            this.evOnWindowHit = func;
+            SDL_SetWindowHitTest(handle, func ? &_SDL_HitTest_Impl : null, cast(void*)this);
+        }
     }
 }
 
