@@ -10,6 +10,9 @@ dependency "soba:canvas" version="*"
 // dependency "soba:ssk" version="*"
 dependency "soba:sio" version="*"
 
+// TODO: replace with Gamut?
+dependency "imagefmt" version="*"
+
 targetPath "out/"
 workingDirectory "out/"
 stringImportPaths "res/"
