@@ -1,20 +1,78 @@
 module soba.siok.window;
 import numem.all;
 import bindbc.sdl;
+import inmath.linalg;
 
 /**
     Window style
 */
 enum SIOWindowStyle {
     /**
-        A SIO window
+        A SIO window, a SIO window is always "borderless" by SDL2 standards,
+        but additionally allows the onWindowHitTest event to be called.
     */
     sioWindow,
 
     /**
-        System-native window
+        System-native window.
+        onWindowHitTest is never called for this window, and the OS draws the window chrome.
     */
     nativeWindow
+}
+
+/**
+    The result of doing a hittest on a SIO Window
+*/
+enum SIOHitResult : int {
+    /**
+        Pass through mouse input to the window.
+    */
+	passthrough         = SDL_HITTEST_NORMAL,
+
+    /**
+        Drag the window
+    */
+	drag                = SDL_HITTEST_DRAGGABLE,
+
+    /**
+        Resize window from the top left
+    */
+	resizeTopLeft       = SDL_HITTEST_RESIZE_TOPLEFT,
+
+    /**
+        Resize window from the top
+    */
+	resizeTop           = SDL_HITTEST_RESIZE_TOP,
+    
+    /**
+        Resize window from the top right
+    */
+	resizeTopRight      = SDL_HITTEST_RESIZE_TOPRIGHT,
+    
+    /**
+        Resize window from the right
+    */
+	resizeRight         = SDL_HITTEST_RESIZE_RIGHT,
+    
+    /**
+        Resize window from the bottom right
+    */
+	resizeBottomRight   = SDL_HITTEST_RESIZE_BOTTOMRIGHT,
+    
+    /**
+        Resize window from the bottom
+    */
+	resizeBottom        = SDL_HITTEST_RESIZE_BOTTOM,
+    
+    /**
+        Resize window from the bottom left
+    */
+	resizeBottomLeft    = SDL_HITTEST_RESIZE_BOTTOMLEFT,
+    
+    /**
+        Resize window from the left
+    */
+	resizeLeft          = SDL_HITTEST_RESIZE_LEFT,
 }
 
 /**
@@ -92,6 +150,7 @@ enum SIOWindowSurfaceType {
     Creation info for surfaces.
 */
 struct SIOSurfaceCreateInfo {
+
     /**
         The type of surface to create
     */
@@ -110,6 +169,8 @@ struct SIOSurfaceCreateInfo {
         SIOSurfaceCreateInfoGL gl;
     }
 }
+
+alias evOnWindowHitFunc = SIOHitResult function(SIOWindow window, vec2i mousePosition) nothrow;
 
 /**
     A window
@@ -188,9 +249,19 @@ private:
         this.wStyle = info.windowStyle;
         this.surfaceInfo = info.surfaceInfo;
     }
+
+    // Events
+    evOnWindowHitFunc evOnWindowHit;
 public:
 
     ~this() {
+
+        // Destroy metal handle if need be
+        if (surfaceInfo.type == SIOWindowSurfaceType.metal) {
+            SDL_Metal_DestroyView(cast(SDL_MetalView)surfaceHandle);
+        }
+
+        // Destroy window
         SDL_DestroyWindow(handle);
     }
 
@@ -281,6 +352,22 @@ public:
     }
 
     /**
+        Gets whether the window is borderless
+    */
+    final
+    bool getBorderless() {
+        return _borderless;
+    }
+
+    /**
+        Gets whether the window is resizable
+    */
+    final
+    bool getResizable() {
+        return _resizable;
+    }
+
+    /**
         Maximizes the window
     */
     final
@@ -334,5 +421,27 @@ public:
     final
     void setModalFor(SIOWindow other) {
         SDL_SetWindowModalFor(handle, other ? other.handle : null);
+    }
+
+    /**
+        Set a function called when a window hit test is requested.
+        Only is called for SIO windows.
+
+        NOTE: The window hit event may not throw exceptions.
+    */
+    final
+    void setOnWindowHitTest(evOnWindowHitFunc func) {
+        this.evOnWindowHit = func;
+        SDL_SetWindowHitTest(handle, func ? &_SDL_HitTest_Impl : null, cast(void*)this);
+    }
+}
+
+//
+//              PRIVATE CALLBACK DELEGATION
+//
+private {
+    extern(C) SDL_HitTestResult _SDL_HitTest_Impl(SDL_Window* win, const(SDL_Point)* area, void* data) nothrow {
+        SIOWindow window = cast(SIOWindow)data;
+        return window.evOnWindowHit(window, vec2i(area.x, area.y));
     }
 }
