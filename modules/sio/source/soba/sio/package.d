@@ -11,5 +11,9 @@ import bindbc.sdl;
 */
 bool sioInit() {
     SDLSupport support = loadSDL();
-    return support != SDLSupport.noLibrary;
+    if (support != SDLSupport.noLibrary) {
+        SDL_Init(SDL_INIT_EVERYTHING);
+        return true;
+    }
+    return false;
 }

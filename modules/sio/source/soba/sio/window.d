@@ -76,6 +76,11 @@ enum SIOHitResult : int {
 }
 
 /**
+    A window ID
+*/
+alias SIOWindowID = uint;
+
+/**
     Tells SIO to center the window on open.
 */
 enum uint SIOWindowCenter = SDL_WINDOWPOS_CENTERED;
@@ -179,6 +184,7 @@ class SIOWindow {
 @nogc:
 private:
     SDL_Window* handle;
+    SIOWindowID wID;
     SIOWindowStyle wStyle;
     nstring title;
     bool _borderless;
@@ -196,6 +202,14 @@ private:
         if (info.borderless) flags |= SDL_WINDOW_BORDERLESS;
         if (info.resizable) flags |= SDL_WINDOW_RESIZABLE;
         version(OSX) flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+
+        // Show IME Composition window
+        // Allow long compositions
+        SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
+        SDL_SetHint(SDL_HINT_IME_SUPPORT_EXTENDED_TEXT, "1");
+
+        // Allow windows to take focus on Windows
+        SDL_SetHint(SDL_HINT_FORCE_RAISEWINDOW, "1");
 
         // Attribute and flag setup
         final switch(info.surfaceInfo.type) {
@@ -244,6 +258,7 @@ private:
         enforce(handle !is null, nstring("Basic window creation failed!"));
         enforce(this.setupSurface(window, info.surfaceInfo.type), nstring("Rendering context creation failed!"));
 
+        this.wID = SDL_GetWindowID(window);
         this.handle = window;
         this.title = info.title;
         this.wStyle = info.windowStyle;
@@ -270,6 +285,14 @@ public:
     */
     this(SIOWindowCreateInfo windowInfo) {
         this.createWindow(windowInfo);
+    }
+
+    /**
+        Gets the numeric ID of the Window
+    */
+    final
+    SIOWindowID getId() {
+        return wID;
     }
 
     /**
