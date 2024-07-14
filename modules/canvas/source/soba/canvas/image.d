@@ -38,7 +38,7 @@ enum SbImageFormat {
 }
 
 class SbImage {
-nothrow @nogc:
+@nogc:
 private:
     vector!ubyte pixels;
     uint width, height;

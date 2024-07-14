@@ -24,7 +24,7 @@ import inteli.emmintrin;
     A box blur effect
 */
 class SbBoxBlurEffect : SbEffect {
-nothrow @nogc:
+@nogc:
 private:
     uint blurSigma;
 
@@ -206,7 +206,7 @@ public:
 }
 
 class SbGaussianBlurEffect : SbEffect {
-nothrow @nogc:
+@nogc:
 private:
     uint radius;
 

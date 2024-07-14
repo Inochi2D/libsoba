@@ -50,7 +50,7 @@ enum SbPatternDither {
 */
 abstract
 class SbPattern {
-nothrow @nogc:
+@nogc:
 public:
     /**
         Gets the sampling mode
@@ -116,7 +116,7 @@ enum SbGradientType {
 */
 abstract
 class SbGradient : SbPattern {
-nothrow @nogc:
+@nogc:
 private:
     SbGradientType type;
 
@@ -184,7 +184,7 @@ public:
 */
 abstract
 class SbImagePattern : SbPattern {
-nothrow @nogc:
+@nogc:
 private:
     SbImage image;
 

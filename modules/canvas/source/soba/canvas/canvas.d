@@ -14,6 +14,7 @@ import numem.all;
 import imagefmt;
 
 import soba.canvas.cairo.canvas;
+import soba.canvas.blend2d.canvas;
 
 enum SbCanvasFormat {
     /**
@@ -39,7 +40,7 @@ enum SbCanvasFormat {
 */
 abstract
 class SbCanvas {
-@nogc nothrow:
+@nogc:
 private:
     uint w, h;
     uint stride;
@@ -82,6 +83,10 @@ public:
     */
     static shared_ptr!SbCanvas create(SbCanvasFormat fmt, uint w, uint h) {
         switch(cnvBackendGet()) {
+            
+            case SbCanvasBackend.blend2D:
+                return shared_ptr!SbCanvas.fromPtr(nogc_new!SbBLCanvas(fmt, w, h));
+
             case SbCanvasBackend.cairo:
                 return shared_ptr!SbCanvas.fromPtr(nogc_new!SbCairoCanvas(fmt, w, h));
 
@@ -150,7 +155,10 @@ public:
     /**
         Resizes the canvas
     */
-    abstract void resize(uint w, uint h);
+    void resize(uint w, uint h) {
+        this.w = w;
+        this.h = h;
+    }
 
     /**
         Acquires a lock to the canvas data.

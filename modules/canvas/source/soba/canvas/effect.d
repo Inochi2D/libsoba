@@ -20,7 +20,7 @@ import inteli.emmintrin;
 */
 abstract
 class SbEffect {
-nothrow @nogc:
+@nogc:
 private:
 protected:
 

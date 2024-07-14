@@ -11,6 +11,7 @@
 module soba.canvas;
 import soba.canvas.ctx;
 import cairo;
+import blend2d;
 
 public import soba.canvas.ctx;
 public import soba.canvas.canvas;
@@ -19,7 +20,7 @@ public import soba.canvas.effects;
 public import soba.canvas.image;
 
 private {
-    SbCanvasBackend cnvBackend;
+    __gshared SbCanvasBackend cnvBackend;
 }
 
 /**
@@ -38,12 +39,15 @@ extern(C):
     Attempts to initialize soba canvas with one of the backends
 */
 bool cnvInit() {
-
-    // TODO: Try Blend2D
+    Blend2DSupport bsupport = loadBlend2D();
+    if (bsupport == Blend2DSupport.blend2d) {
+        cnvBackend = SbCanvasBackend.blend2D;
+        return true;
+    }
 
     // Try Cairo
-    CairoSupport support = loadCairo();
-    if (support == CairoSupport.cairo) {
+    CairoSupport csupport = loadCairo();
+    if (csupport == CairoSupport.cairo) {
         cnvBackend = SbCanvasBackend.cairo;
         return true;
     }

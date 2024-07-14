@@ -5,6 +5,7 @@ copyright "Copyright © 2024, Inochi2D Project"
 license "BSD-2-Clause"
 
 dependency "i2d-cairo" version="~>1.0.1"
+dependency "i2d-blend2d" version="*"
 dependency "inmath" version="*"
 dependency "numem" version="*"
 dependency "intel-intrinsics" version="~>1.11.18"
@@ -13,4 +14,5 @@ dependency "intel-intrinsics" version="~>1.11.18"
 dependency "imagefmt" version="*"
 
 targetPath "out/"
+workingDirectory "out/"
 targetName "canvas"

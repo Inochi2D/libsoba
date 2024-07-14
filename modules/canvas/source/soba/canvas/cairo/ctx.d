@@ -18,7 +18,7 @@ import soba.canvas.cairo.mask;
 import numem.all;
 
 class SbCairoContext : SbContext {
-nothrow @nogc:
+@nogc:
 private:
     cairo_t* cr;
     SbBlendOperator op;
@@ -458,6 +458,11 @@ public:
     override
     void setSource(SbCanvas canvas, vec2 offset) {
         cairo_set_source_surface(cr, cast(cairo_surface_t*)canvas.getHandle(), offset.x, offset.y);
+    }
+
+    override
+    void flush() {
+        cairo_surface_flush(cairo_get_target(cr));
     }
 
     override

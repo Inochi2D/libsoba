@@ -16,6 +16,8 @@ import inmath.linalg;
 import numem.all;
 
 import soba.canvas.cairo.ctx;
+import soba.canvas.blend2d.ctx;
+import soba.canvas.blend2d.canvas;
 import soba.canvas.mask;
 import soba.canvas.effect;
 
@@ -87,7 +89,7 @@ alias SbContextCookie = void*;
 */
 abstract
 class SbContext {
-nothrow @nogc:
+@nogc:
 private:
     SbCanvas target;
     vector!(recti) clipRects;
@@ -110,6 +112,8 @@ public:
     */
     static shared_ptr!SbContext create(SbCanvas canvas) {
         switch(canvas.getBackend()) {
+            case SbCanvasBackend.blend2D:
+                return shared_ptr!SbContext.fromPtr(nogc_new!SbBLContext(canvas)); 
             case SbCanvasBackend.cairo:
                 return shared_ptr!SbContext.fromPtr(nogc_new!SbCairoContext(canvas));
             default:
@@ -347,6 +351,11 @@ public:
         Sets the source for rendering
     */
     abstract void setSource(SbCanvas canvas, vec2 offset=vec2(0));
+
+    /**
+        Flushes drawing operations
+    */
+    abstract void flush();
 
     /**
         Adds a clipping rectangle

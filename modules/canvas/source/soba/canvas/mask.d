@@ -17,7 +17,7 @@ import soba.canvas.ctx;
 */
 abstract
 class SbMask {
-nothrow @nogc:
+@nogc:
 private:
     SbCanvasFormat fmt;
     SbContext parent;

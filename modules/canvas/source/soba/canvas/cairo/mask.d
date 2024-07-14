@@ -13,7 +13,7 @@ import cairo;
 import inmath.math;
 
 class SbCairoMask : SbMask {
-nothrow @nogc:
+@nogc:
 private:
     cairo_t* parent;
     cairo_path_t* path;

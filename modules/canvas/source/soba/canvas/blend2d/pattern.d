@@ -5,7 +5,7 @@
     Authors: Luna Nielsen
 */
 
-module soba.canvas.cairo.pattern;
+module soba.canvas.blend2d.pattern;
 import soba.canvas.pattern;
 import soba.canvas.image;
 import soba.canvas.canvas;
@@ -262,3 +262,4 @@ public:
         cairo_surface_mark_dirty(this.surface);
     }
 }
+

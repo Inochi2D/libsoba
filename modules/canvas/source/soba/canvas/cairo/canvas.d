@@ -12,7 +12,7 @@ import cairo;
 import numem.all;
 
 class SbCairoCanvas : SbCanvas {
-nothrow @nogc:
+@nogc:
 private:
     cairo_surface_t* surface;
 
