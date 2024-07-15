@@ -15,6 +15,7 @@ import soba.canvas;
 import soba.canvas.image;
 
 import soba.canvas.cairo.pattern;
+import soba.canvas.blend2d.pattern;
 
 /**
     The sampling mode for patterns
@@ -133,6 +134,10 @@ public:
             default:
                 shared_ptr!SbGradient grad;
                 return grad;
+
+            case SbCanvasBackend.blend2D:
+                return shared_ptr!SbGradient.fromPtr(SbBLGradient.linearGradient(start, end));
+
             case SbCanvasBackend.cairo:
                 return shared_ptr!SbGradient.fromPtr(SbCairoGradient.linearGradient(start, end));
         }
@@ -146,6 +151,9 @@ public:
             default:
                 shared_ptr!SbGradient grad;
                 return grad;
+
+            case SbCanvasBackend.blend2D:
+                return shared_ptr!SbGradient.fromPtr(SbBLGradient.radialGradient(inner, innerRadius, outer, outerRadius));
             
             case SbCanvasBackend.cairo:
                 return shared_ptr!SbGradient.fromPtr(SbCairoGradient.radialGradient(inner, innerRadius, outer, outerRadius));
@@ -232,6 +240,10 @@ public:
             default:
                 shared_ptr!SbImagePattern grad;
                 return grad;
+
+            case SbCanvasBackend.blend2D:
+                return shared_ptr!SbImagePattern.fromPtr(nogc_new!SbBLImagePattern(image));
+
             case SbCanvasBackend.cairo:
                 return shared_ptr!SbImagePattern.fromPtr(nogc_new!SbCairoImagePattern(image));
         }

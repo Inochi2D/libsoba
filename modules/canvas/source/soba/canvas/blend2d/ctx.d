@@ -1,7 +1,7 @@
 /*
     Copyright © 2024, Inochi2D Project
     Distributed under the 2-Clause BSD License, see LICENSE file.
-    
+
     Authors: Luna Nielsen
 */
 
@@ -15,6 +15,7 @@ import inmath.linalg : vec2, vec3, vec4, recti, vec2i;
 import inmath.math : max, radians, clamp;
 import blend2d;
 import soba.canvas.blend2d.mask;
+import soba.canvas.blend2d.canvas;
 import numem.all;
 
 class SbBLContext : SbContext {
@@ -88,8 +89,9 @@ public:
 
     override
     SbContextCookie save() {
-        blContextSave(&ctx, null);
 
+        // TODO: cookies in Blend2D are stack allocated, figure out a good way to handle that.
+        blContextSave(&ctx, null);
         return null;
     }
 
@@ -125,7 +127,7 @@ public:
 
     override
     SbLineCap getLineCap() {
-        
+
         final switch(blContextGetStrokeCap(&ctx, BLStrokeCapPosition.BL_STROKE_CAP_POSITION_START)) {
             case BLStrokeCap.BL_STROKE_CAP_BUTT: return SbLineCap.butt;
             case BLStrokeCap.BL_STROKE_CAP_SQUARE: return SbLineCap.square;
@@ -153,7 +155,7 @@ public:
             case BLStrokeJoin.BL_STROKE_JOIN_MITER_CLIP: return SbLineJoin.miter;
             case BLStrokeJoin.BL_STROKE_JOIN_BEVEL: return SbLineJoin.bevel;
             case BLStrokeJoin.BL_STROKE_JOIN_ROUND: return SbLineJoin.round;
-        } 
+        }
     }
 
     override
@@ -241,7 +243,7 @@ public:
     override
     shared_ptr!SbMask fillMask() {
         // cairo_&path_t* &path = cairo_copy_&path(cr);
-        
+
         // if (&path.num_data == 0) {
         //     cairo_&path_destroy(&path);
 
@@ -253,7 +255,7 @@ public:
 
         return (shared_ptr!SbMask).init;
     }
-    
+
     override
     void setMask(shared_ptr!SbMask mask) {
 
@@ -265,7 +267,7 @@ public:
         // this.currentMask = mask;
         // this.applyMask();
     }
-    
+
     override
     void clearMask() {
         // nogc_delete(currentMask);
@@ -295,7 +297,7 @@ public:
         // point.x = cast(int)dx;
         // point.y = cast(int)dy;
 
-        // return 
+        // return
         //     isInMaskImpl(vec2(point.x-SB_MASK_SEARCH_EPSILON, point.y)) ||
         //     isInMaskImpl(vec2(point.x+SB_MASK_SEARCH_EPSILON, point.y)) ||
         //     isInMaskImpl(vec2(point.x, point.y-SB_MASK_SEARCH_EPSILON)) ||
@@ -350,56 +352,59 @@ public:
 
     override
     void roundRect(math.rect r, float borderRadiusTL, float borderRadiusTR, float borderRadiusBL, float borderRadiusBR) {
-        blPathMoveTo(&path, r.x+borderRadiusTL, r.y);
+        blPathMoveTo(&path, r.left+borderRadiusTL, r.top);
 
         // Top-Right
-        blPathLineTo(&path, r.right-borderRadiusTR, r.y);
+        blPathLineTo(&path, r.right-borderRadiusTR, r.top);
         blPathArcQuadrantTo(&path, r.right, r.top, r.right, r.top+borderRadiusTR);
 
-        // // Bottom-Right
-        // blPathLineTo(&path, r.right-borderRadiusTR, r.y);
-        // blPathArcQuadrantTo(&path, r.right-borderRadiusBR, r.bottom-borderRadiusBR, borderRadiusBR);
+        // Bottom-Right
+        blPathLineTo(&path, r.right, r.bottom-borderRadiusBR);
+        blPathArcQuadrantTo(&path, r.right, r.bottom, r.right-borderRadiusBR, r.bottom);
 
-        // // Bottom-Left
-        // blPathLineTo(&path, r.right-borderRadiusTR, r.y);
-        // blPathArcQuadrantTo(&path, r.left+borderRadiusBL, r.bottom-borderRadiusBL, borderRadiusBL);
+        // Bottom-Left
+        blPathLineTo(&path, r.left+borderRadiusBL, r.bottom);
+        blPathArcQuadrantTo(&path, r.left, r.bottom, r.left, r.bottom-borderRadiusBL);
 
-        // // Top-Left
-        // blPathLineTo(&path, r.right-borderRadiusTR, r.y);
-        // blPathArcQuadrantTo(&path, r.left+borderRadiusTL, r.top+borderRadiusTL, borderRadiusTL);
+        // Top-Left
+        blPathLineTo(&path, r.left, r.top+borderRadiusTL);
+        blPathArcQuadrantTo(&path, r.left, r.top, r.left+borderRadiusTL, r.top);
 
         blPathClose(&path);
     }
 
     override
     void squircle(math.rect r, float elasticity) {
-        // cairo_new_&path(cr);
+        elasticity = clamp(elasticity, 0, 1);
 
-        // elasticity = clamp(elasticity, 0, 1);
+        float halfW = (r.width/2);
+        float halfH = (r.height/2);
 
-        // float halfW = (r.width/2);
-        // float halfH = (r.height/2);
+        float elasticW = halfW*elasticity;
+        float elasticH = halfH*elasticity;
 
-        // float elasticW = halfW*elasticity;
-        // float elasticH = halfH*elasticity;
+        vec2 rel = vec2(r.left+halfW, r.top);
 
-        // // Begin
-        // cairo_move_to(cr, r.x+halfW, r.top);
+        // Begin
+        blPathMoveTo(&path, rel.x, rel.y);
 
-        // // Right center
-        // cairo_rel_curve_to(cr, elasticW, 0, halfW, 0, halfW, halfH);
+        // Right center
+        blPathCubicTo(&path, rel.x+elasticW, rel.y+0, rel.x+halfW, rel.y+0, rel.x+halfW, rel.y+halfH);
+        rel = getPathCursorPos();
 
-        // // Bottom center
-        // cairo_rel_curve_to(cr, 0, elasticH, 0, halfH, -halfW, halfH);
+        // Bottom center
+        blPathCubicTo(&path, rel.x+0, rel.y+elasticH, rel.x+0, rel.y+halfH, rel.x-halfW, rel.y+halfH);
+        rel = getPathCursorPos();
 
-        // // Left center
-        // cairo_rel_curve_to(cr, -elasticW, 0, -halfW, 0, -halfW, -halfH);
+        // Left center
+        blPathCubicTo(&path, rel.x-elasticW, rel.y+0, rel.x-halfW, rel.y+0, rel.x-halfW, rel.y-halfH);
+        rel = getPathCursorPos();
 
-        // // Top center
-        // cairo_rel_curve_to(cr, 0, -elasticH, 0, -halfH, halfW, -halfH);
-        
-        // // Finalize
-        // cairo_close_&path(cr);
+        // Top center
+        blPathCubicTo(&path, rel.x+0, rel.y-elasticH, rel.x+0, rel.y-halfH, rel.x+halfW, rel.y-halfH);
+
+        // Finalize
+        blPathClose(&path);
     }
 
     override
@@ -466,12 +471,16 @@ public:
 
     override
     void setSource(SbPattern pattern) {
-        // cairo_set_source(cr, cast(cairo_pattern_t*)pattern.getHandle());
+        blContextSetFillStyle(&ctx, pattern.getHandle());
+        blContextSetStrokeStyle(&ctx, pattern.getHandle());
     }
 
     override
     void setSource(SbCanvas canvas, vec2 offset) {
-        // cairo_set_source_surface(cr, cast(cairo_surface_t*)canvas.getHandle(), offset.x, offset.y);
+        if(auto blc = cast(SbBLCanvas)canvas) {
+            blContextSetFillStyle(&ctx, blc.getPatternHandle());
+            blContextSetStrokeStyle(&ctx, blc.getPatternHandle());
+        }
     }
 
     override

@@ -9,32 +9,37 @@ module soba.canvas.blend2d.pattern;
 import soba.canvas.pattern;
 import soba.canvas.image;
 import soba.canvas.canvas;
-import cairo;
+import blend2d;
 import inmath.linalg;
 import numem.all;
 
-mixin template SbCairoPatternImpl() {
+alias mat3d = Matrix!(double, 3, 3);
+
+class SbBLGradient : SbGradient {
+@nogc:
 private:
-    cairo_pattern_t* pattern;
-    cairo_matrix_t mat;
+    BLGradient gradient;
+    BLMatrix2D mat;
 
 public:
-
-    // Destructor
     ~this() {
-        cairo_pattern_destroy(pattern);
+        blGradientDestroy(&gradient);
     }
 
+    this(SbGradientType type) {
+        super(type);
+    }
+    
     /**
         Gets the sampling mode
     */
     override
     SbPatternSampleMode getSampleMode() {
-        final switch(cairo_pattern_get_extend(pattern)) {
-            case cairo_extend_t.CAIRO_EXTEND_NONE: return SbPatternSampleMode.none;
-            case cairo_extend_t.CAIRO_EXTEND_REPEAT: return SbPatternSampleMode.repeat;
-            case cairo_extend_t.CAIRO_EXTEND_REFLECT: return SbPatternSampleMode.mirror;
-            case cairo_extend_t.CAIRO_EXTEND_PAD: return SbPatternSampleMode.borderClamp;
+        switch(blGradientGetExtendMode(&gradient)) {
+            case BLExtendMode.BL_EXTEND_MODE_REPEAT: return SbPatternSampleMode.repeat;
+            case BLExtendMode.BL_EXTEND_MODE_REFLECT: return SbPatternSampleMode.mirror;
+            case BLExtendMode.BL_EXTEND_MODE_PAD: return SbPatternSampleMode.borderClamp;
+            default: return SbPatternSampleMode.repeat;
         }
     }
 
@@ -44,10 +49,10 @@ public:
     override
     void setSampleMode(SbPatternSampleMode mode) {
         final switch(mode) {
-            case SbPatternSampleMode.none:          cairo_pattern_set_extend(pattern, cairo_extend_t.CAIRO_EXTEND_NONE); return;
-            case SbPatternSampleMode.repeat:        cairo_pattern_set_extend(pattern, cairo_extend_t.CAIRO_EXTEND_REPEAT); return;
-            case SbPatternSampleMode.mirror:        cairo_pattern_set_extend(pattern, cairo_extend_t.CAIRO_EXTEND_REFLECT); return;
-            case SbPatternSampleMode.borderClamp:   cairo_pattern_set_extend(pattern, cairo_extend_t.CAIRO_EXTEND_PAD); return;
+            case SbPatternSampleMode.none:          blGradientSetExtendMode(&gradient, BLExtendMode.BL_EXTEND_MODE_PAD); return;
+            case SbPatternSampleMode.repeat:        blGradientSetExtendMode(&gradient, BLExtendMode.BL_EXTEND_MODE_REPEAT); return;
+            case SbPatternSampleMode.mirror:        blGradientSetExtendMode(&gradient, BLExtendMode.BL_EXTEND_MODE_REFLECT); return;
+            case SbPatternSampleMode.borderClamp:   blGradientSetExtendMode(&gradient, BLExtendMode.BL_EXTEND_MODE_PAD); return;
         }
     }
 
@@ -56,19 +61,9 @@ public:
     */
     override
     SbPatternFilter getFiltering() {
-        final switch(cairo_pattern_get_filter(pattern)) {
-            case cairo_filter_t.CAIRO_FILTER_FAST:
-            case cairo_filter_t.CAIRO_FILTER_NEAREST:
-                return SbPatternFilter.nearest;
-            
-            case cairo_filter_t.CAIRO_FILTER_GOOD:
-            case cairo_filter_t.CAIRO_FILTER_BILINEAR:
-                return SbPatternFilter.bilinear;
 
-            case cairo_filter_t.CAIRO_FILTER_BEST:
-            case cairo_filter_t.CAIRO_FILTER_GAUSSIAN:
-                return SbPatternFilter.gaussian;
-        }
+        // Blend2D only does bilinear filtering atm.
+        return SbPatternFilter.bilinear;
     }
 
     /**
@@ -76,11 +71,8 @@ public:
     */
     override
     void setFiltering(SbPatternFilter filter) {
-        final switch(filter) {
-            case SbPatternFilter.nearest:   cairo_pattern_set_filter(pattern, cairo_filter_t.CAIRO_FILTER_NEAREST); return;
-            case SbPatternFilter.bilinear:  cairo_pattern_set_filter(pattern, cairo_filter_t.CAIRO_FILTER_BILINEAR); return;
-            case SbPatternFilter.gaussian:  cairo_pattern_set_filter(pattern, cairo_filter_t.CAIRO_FILTER_GAUSSIAN); return;
-        }
+
+        // Blend2D only does bilinear filtering atm.
     }
 
     /**
@@ -102,12 +94,231 @@ public:
     */
     override
     mat3 getMatrix() {
-        cairo_pattern_get_matrix(pattern, &mat);
+        blGradientGetTransform(&gradient, &mat);
+
+        mat3d m = mat3d(
+            mat[0][0], mat[1][0], 0,
+            mat[0][1], mat[1][1], 0,
+            mat[0][2], mat[1][2], 1,
+        );
+
+        return mat3(m);
+    }
+
+    /**
+        Sets the matrix
+    */
+    override
+    void setMatrix(mat3 matrix) {
+
+        // Affine translation
+        mat[0][2] = -matrix[0][2];
+        mat[1][2] = -matrix[1][2];
+
+        matrix.invert();
+
+        mat[0][0] = matrix[0][0];
+        mat[0][1] = matrix[0][1];
+        mat[1][0] = matrix[1][0];
+        mat[1][1] = matrix[1][1];
+
+        blGradientApplyTransformOp(&gradient, BLTransformOp.BL_TRANSFORM_OP_ASSIGN, &mat);
+    }
+
+    /**
+        Clears the pattern's matrix
+    */
+    override
+    void clearMatrix() {
+        blGradientApplyTransformOp(&gradient, BLTransformOp.BL_TRANSFORM_OP_RESET, null);
+    }
+
+    /**
+        Returns the backing handle
+    */
+    override
+    void* getHandle() {
+        return &gradient;
+    }
+
+    static
+    SbBLGradient linearGradient(vec2 start, vec2 end) {
+        SbBLGradient grad = nogc_new!SbBLGradient(SbGradientType.linear);
+        BLLinearGradientValues values;
+        values.x0 = start.x;
+        values.y0 = start.y;
+        values.x1 = end.x;
+        values.y1 = end.y;
+
+        blGradientInitAs(cast(BLGradient*)grad.getHandle(), BLGradientType.BL_GRADIENT_TYPE_LINEAR, &values, BLExtendMode.BL_EXTEND_MODE_PAD, null, 0, null);
+        return grad;
+    }
+
+    static
+    SbBLGradient radialGradient(vec2 inner, float innerRadius, vec2 outer, float outerRadius) {
+        SbBLGradient grad = nogc_new!SbBLGradient(SbGradientType.linear);
+
+        BLRadialGradientValues values;
+        values.x0 = inner.x;
+        values.y0 = inner.y;
+        values.x1 = outer.x;
+        values.y1 = outer.y;
+        values.r0 = innerRadius;
+        values.r1 = outerRadius;
+
+        blGradientInitAs(cast(BLGradient*)grad.getHandle(), BLGradientType.BL_GRADIENT_TYPE_RADIAL, &values, BLExtendMode.BL_EXTEND_MODE_PAD, null, 0, null);
+        return grad;
+    }
+
+
+    override
+    void addStop(float offset, vec4 color) {
+        union rgbc {
+            ubyte[4] b;
+            uint argb32;
+        }
+        rgbc conv;
+        conv.b[2] = cast(ubyte)(255.0/color.x);
+        conv.b[1] = cast(ubyte)(255.0/color.y);
+        conv.b[0] = cast(ubyte)(255.0/color.z);
+        conv.b[3] = cast(ubyte)(255.0/color.w);
+
+        blGradientAddStopRgba32(&gradient, offset, conv.argb32);
+    }
+
+
+    override
+    void addStop(float offset, vec3 color) {
+        this.addStop(offset, vec4(color, 1));
+    }
+
+    override
+    uint getStopCount() {
+        return cast(uint)blGradientGetSize(&gradient);
+    }
+}
+
+
+class SbBLImagePattern : SbImagePattern {
+@nogc:
+private:
+    BLImage img;
+    BLImageData data;
+    BLPattern pattern;
+    BLMatrix2D mat;
+    
+    BLFormat getBLFormat() {
+        final switch(this.getImage().getFormat()) {
+            case SbImageFormat.None:    return BLFormat.BL_FORMAT_NONE;
+            case SbImageFormat.A8:      return BLFormat.BL_FORMAT_A8;
+            case SbImageFormat.RGB:     return BLFormat.BL_FORMAT_XRGB32;
+            case SbImageFormat.RGBA:    return BLFormat.BL_FORMAT_PRGB32;
+        }
+    }
+
+
+public:
+
+    ~this() {
+        if (img.pixelData) {
+            blImageDestroy(&img);
+            blPatternDestroy(&pattern);
+        }
+    }
+
+    this(SbImage image) {
+        super(image);
+        blImageInitAs(
+            &img, 
+            image.getWidth(), 
+            image.getHeight(), 
+            this.getBLFormat()
+        );
+        blImageMakeMutable(&img, &data);
+        blPatternInitAs(&pattern, &img, null, BLExtendMode.BL_EXTEND_MODE_PAD, null);
+
+        this.refresh();
+    }
+
+    override
+    void refresh() {
+        ubyte[] dataSlice = this.getImage().getData();
+
+        // Copy to surface
+        auto pdata = cast(ubyte*)data.pixelData;
+        pdata[0..dataSlice.length] = dataSlice[0..$];
+    }
+    
+    /**
+        Gets the sampling mode
+    */
+    override
+    SbPatternSampleMode getSampleMode() {
+        switch(blPatternGetExtendMode(&pattern)) {
+            case BLExtendMode.BL_EXTEND_MODE_REPEAT: return SbPatternSampleMode.repeat;
+            case BLExtendMode.BL_EXTEND_MODE_REFLECT: return SbPatternSampleMode.mirror;
+            case BLExtendMode.BL_EXTEND_MODE_PAD: return SbPatternSampleMode.borderClamp;
+            default: return SbPatternSampleMode.repeat;
+        }
+    }
+
+    /**
+        Sets the sampling mode
+    */
+    override
+    void setSampleMode(SbPatternSampleMode mode) {
+        final switch(mode) {
+            case SbPatternSampleMode.none:          blPatternSetExtendMode(&pattern, BLExtendMode.BL_EXTEND_MODE_PAD); return;
+            case SbPatternSampleMode.repeat:        blPatternSetExtendMode(&pattern, BLExtendMode.BL_EXTEND_MODE_REPEAT); return;
+            case SbPatternSampleMode.mirror:        blPatternSetExtendMode(&pattern, BLExtendMode.BL_EXTEND_MODE_REFLECT); return;
+            case SbPatternSampleMode.borderClamp:   blPatternSetExtendMode(&pattern, BLExtendMode.BL_EXTEND_MODE_PAD); return;
+        }
+    }
+
+    /**
+        Gets the filtering mode
+    */
+    override
+    SbPatternFilter getFiltering() {
+
+        // Blend2D only does bilinear filtering atm.
+        return SbPatternFilter.bilinear;
+    }
+
+    /**
+        Sets the filtering mode
+    */
+    override
+    void setFiltering(SbPatternFilter filter) {
+
+        // Blend2D only does bilinear filtering atm.
+    }
+
+    /**
+        Gets the dithering mode
+    */
+    override
+    SbPatternDither getDither() {
+        return SbPatternDither.none;
+    }
+
+    /**
+        Sets the dithering mode
+    */
+    override
+    void setDither(SbPatternDither filter) { }
+
+    /**
+        Gets the matrix
+    */
+    override
+    mat3 getMatrix() {
+        blPatternGetTransform(&pattern, &mat);
 
         return mat3(
-            mat.xx, mat.xy, mat.x0,
-            mat.yx, mat.yy, mat.y0,
-            0,      0,      1
+            mat[0][0], mat[1][0], 0.0,
+            mat[0][1], mat[1][1], 0.0,
+            mat[0][2], mat[1][2], 1.0,
         );
     }
 
@@ -118,17 +329,17 @@ public:
     void setMatrix(mat3 matrix) {
 
         // Affine translation
-        mat.x0 = -matrix[0][2];
-        mat.y0 = -matrix[1][2];
+        mat[0][2] = -matrix[0][2];
+        mat[1][2] = -matrix[1][2];
 
         matrix.invert();
 
-        mat.xx = matrix[0][0];
-        mat.xy = matrix[0][1];
-        mat.yx = matrix[1][0];
-        mat.yy = matrix[1][1];
+        mat[0][0] = matrix[0][0];
+        mat[0][1] = matrix[0][1];
+        mat[1][0] = matrix[1][0];
+        mat[1][1] = matrix[1][1];
 
-        cairo_pattern_set_matrix(pattern, &mat);
+        blPatternApplyTransformOp(&pattern, BLTransformOp.BL_TRANSFORM_OP_ASSIGN, &mat);
     }
 
     /**
@@ -136,8 +347,7 @@ public:
     */
     override
     void clearMatrix() {
-        cairo_matrix_init_identity(&mat);
-        cairo_pattern_set_matrix(pattern, &mat);
+        blPatternApplyTransformOp(&pattern, BLTransformOp.BL_TRANSFORM_OP_RESET, null);
     }
 
     /**
@@ -145,121 +355,7 @@ public:
     */
     override
     void* getHandle() {
-        return pattern;
-    }
-}
-
-class SbCairoGradient : SbGradient {
-@nogc:
-private:
-    mixin SbCairoPatternImpl;
-
-public:
-    this(SbGradientType type) {
-        super(type);
-    }
-
-    static
-    SbCairoGradient linearGradient(vec2 start, vec2 end) {
-        SbCairoGradient grad = nogc_new!SbCairoGradient(SbGradientType.linear);
-        grad.pattern = cairo_pattern_create_linear(start.x, start.y, end.x, end.y);
-        return grad;
-    }
-
-    static
-    SbCairoGradient radialGradient(vec2 inner, float innerRadius, vec2 outer, float outerRadius) {
-        SbCairoGradient grad = nogc_new!SbCairoGradient(SbGradientType.linear);
-        grad.pattern = cairo_pattern_create_radial(
-            inner.x, 
-            inner.y, 
-            innerRadius, 
-            outer.x, 
-            outer.y, 
-            outerRadius
-        );
-        return grad;
-    }
-
-
-    override
-    void addStop(float offset, vec4 color) {
-        cairo_pattern_add_color_stop_rgba(
-            pattern, 
-            offset,
-            color.x,
-            color.y,
-            color.z,
-            color.w
-        );
-    }
-
-
-    override
-    void addStop(float offset, vec3 color) {
-        cairo_pattern_add_color_stop_rgb(
-            pattern, 
-            offset,
-            color.x,
-            color.y,
-            color.z
-        );
-    }
-
-    override
-    uint getStopCount() {
-        int stops;
-        cairo_pattern_get_color_stop_count(pattern, &stops);
-        return stops;
-    }
-}
-
-
-class SbCairoImagePattern : SbImagePattern {
-@nogc:
-private:
-    mixin SbCairoPatternImpl;
-
-    cairo_surface_t* surface;
-    cairo_format_t getCairoFormatType() {
-        final switch(this.getImage().getFormat()) {
-            case SbImageFormat.None:    return cairo_format_t.CAIRO_FORMAT_INVALID;
-            case SbImageFormat.A8:      return cairo_format_t.CAIRO_FORMAT_A8;
-            case SbImageFormat.RGB:     return cairo_format_t.CAIRO_FORMAT_RGB24;
-            case SbImageFormat.RGBA:    return cairo_format_t.CAIRO_FORMAT_ARGB32;
-        }
-    }
-
-
-public:
-
-    ~this() {
-        if (surface) {
-            cairo_surface_destroy(surface);
-        }
-    }
-
-    this(SbImage image) {
-        super(image);
-        this.surface = cairo_image_surface_create(
-            this.getCairoFormatType(), 
-            image.getWidth(), 
-            image.getHeight()
-        );
-        this.pattern = cairo_pattern_create_for_surface(surface);
-        this.refresh();
-    }
-
-    override
-    void refresh() {
-        SbImage image = this.getImage();
-        ubyte[] dataSlice = image.getData();
-
-        // Copy to surface
-        auto data = cairo_image_surface_get_data(this.surface);
-        data[0..dataSlice.length] = dataSlice[0..$];
-
-        // Flush the surface.
-        cairo_surface_mark_dirty(this.surface);
+        return &pattern;
     }
 }
 

@@ -18,6 +18,8 @@ private:
     BLImageData data;
     SbBLContext parent;
 
+    BLPattern pattern;
+
     void createImage(SbCanvasFormat fmt, uint width, uint height) {
 
         // Create the underlying surface
@@ -36,6 +38,7 @@ private:
         }
 
         blImageMakeMutable(&image, &data);
+        blPatternInitAs(&pattern, &image, null, BLExtendMode.BL_EXTEND_MODE_PAD, null);
     }
 
 protected:
@@ -48,6 +51,7 @@ protected:
 public:
 
     ~this() {
+        blPatternDestroy(&pattern);
         blImageDestroy(&image);
     }
 
@@ -73,6 +77,10 @@ public:
     override
     void* getHandle() {
         return &image;
+    }
+
+    BLPattern* getPatternHandle() {
+        return &pattern;
     }
 
     override
