@@ -18,3 +18,5 @@ soba-test-*
 
 out/
 dub.selections.json
+
+app.d
