@@ -415,7 +415,7 @@ public:
     override
     void translate(vec2 pos) {
         vec2d dpos = pos;
-        blContextApplyTransformOp(&ctx, BLTransformOp.BL_TRANSFORM_OP_RESET, &dpos);
+        blContextApplyTransformOp(&ctx, BLTransformOp.BL_TRANSFORM_OP_TRANSLATE, &dpos);
     }
 
     override

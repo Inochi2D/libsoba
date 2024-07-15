@@ -127,8 +127,6 @@ public:
             // Read the image
             IFImage img = read_image(file.toDString, this.alignment);
             if (img.e == 0) {
-                import core.stdc.stdio : printf;
-                printf("awawa!\n");
                 this.setFmt();
                 this.setFromImage(img);
             }

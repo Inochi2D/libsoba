@@ -19,7 +19,6 @@ class SbBLGradient : SbGradient {
 @nogc:
 private:
     BLGradient gradient;
-    BLMatrix2D mat;
 
 public:
     ~this() {
@@ -94,15 +93,14 @@ public:
     */
     override
     mat3 getMatrix() {
-        blGradientGetTransform(&gradient, &mat);
+        double[6] mat;
+        blGradientGetTransform(&gradient, cast(BLMatrix2D*)&mat);
 
-        mat3d m = mat3d(
-            mat[0][0], mat[1][0], 0,
-            mat[0][1], mat[1][1], 0,
-            mat[0][2], mat[1][2], 1,
+        return mat3(
+            mat[0], mat[2], mat[4],
+            mat[1], mat[3], mat[5],
+            0,         0,         1.0,
         );
-
-        return mat3(m);
     }
 
     /**
@@ -111,16 +109,14 @@ public:
     override
     void setMatrix(mat3 matrix) {
 
-        // Affine translation
-        mat[0][2] = -matrix[0][2];
-        mat[1][2] = -matrix[1][2];
-
-        matrix.invert();
-
-        mat[0][0] = matrix[0][0];
-        mat[0][1] = matrix[0][1];
-        mat[1][0] = matrix[1][0];
-        mat[1][1] = matrix[1][1];
+        double[6] mat = [
+            matrix[0][0],
+            matrix[0][1],
+            matrix[1][0],
+            matrix[1][1],
+            matrix[0][2],
+            matrix[1][2]
+        ];
 
         blGradientApplyTransformOp(&gradient, BLTransformOp.BL_TRANSFORM_OP_ASSIGN, &mat);
     }
@@ -205,7 +201,6 @@ private:
     BLImage img;
     BLImageData data;
     BLPattern pattern;
-    BLMatrix2D mat;
     
     BLFormat getBLFormat() {
         final switch(this.getImage().getFormat()) {
@@ -313,12 +308,13 @@ public:
     */
     override
     mat3 getMatrix() {
-        blPatternGetTransform(&pattern, &mat);
+        double[6] mat;
+        blPatternGetTransform(&pattern, cast(BLMatrix2D*)&mat);
 
         return mat3(
-            mat[0][0], mat[1][0], 0.0,
-            mat[0][1], mat[1][1], 0.0,
-            mat[0][2], mat[1][2], 1.0,
+            mat[0], mat[2], mat[4],
+            mat[1], mat[3], mat[5],
+            0,         0,         1.0,
         );
     }
 
@@ -328,16 +324,14 @@ public:
     override
     void setMatrix(mat3 matrix) {
 
-        // Affine translation
-        mat[0][2] = -matrix[0][2];
-        mat[1][2] = -matrix[1][2];
-
-        matrix.invert();
-
-        mat[0][0] = matrix[0][0];
-        mat[0][1] = matrix[0][1];
-        mat[1][0] = matrix[1][0];
-        mat[1][1] = matrix[1][1];
+        double[6] mat = [
+            matrix[0][0],
+            matrix[0][1],
+            matrix[1][0],
+            matrix[1][1],
+            matrix[0][2],
+            matrix[1][2]
+        ];
 
         blPatternApplyTransformOp(&pattern, BLTransformOp.BL_TRANSFORM_OP_ASSIGN, &mat);
     }
