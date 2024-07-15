@@ -14,7 +14,7 @@ import blend2d;
 class SbBLCanvas : SbCanvas {
 @nogc:
 private:
-    BLImageCore image;
+    BLImage image;
     BLImageData data;
     SbBLContext parent;
 

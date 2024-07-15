@@ -20,8 +20,8 @@ import numem.all;
 class SbBLContext : SbContext {
 @nogc:
 private:
-    BLContextCore ctx;
-    BLPathCore path;
+    BLContext ctx;
+    BLPath path;
     SbBlendOperator op;
     shared_ptr!SbMask currentMask;
     bool hasMask = false;
@@ -72,7 +72,7 @@ public:
         BLContextCreateInfo cInfo;
         cInfo.reset();
 
-        blContextInitAs(&ctx, cast(BLImageCore*)canvas.getHandle(), &cInfo);
+        blContextInitAs(&ctx, cast(BLImage*)canvas.getHandle(), &cInfo);
         blPathInit(&path);
 
         blContextClearAll(&ctx);
