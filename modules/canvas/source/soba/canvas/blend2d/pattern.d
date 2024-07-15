@@ -8,7 +8,6 @@
 module soba.canvas.blend2d.pattern;
 import soba.canvas.pattern;
 import soba.canvas.image;
-import soba.canvas.canvas;
 import blend2d;
 import inmath.linalg;
 import numem.all;
@@ -206,9 +205,17 @@ private:
         final switch(this.getImage().getFormat()) {
             case SbImageFormat.None:    return BLFormat.BL_FORMAT_NONE;
             case SbImageFormat.A8:      return BLFormat.BL_FORMAT_A8;
-            case SbImageFormat.RGB:     return BLFormat.BL_FORMAT_XRGB32;
-            case SbImageFormat.RGBA:    return BLFormat.BL_FORMAT_PRGB32;
+            case SbImageFormat.RGB32:     return BLFormat.BL_FORMAT_XRGB32;
+            case SbImageFormat.RGBA32:    return BLFormat.BL_FORMAT_PRGB32;
         }
+    }
+
+    void refresh() {
+
+        // Copy to surface
+        ubyte[] srcBuffer     = this.getData();
+        ubyte*  targetBuffer  = cast(ubyte*)data.pixelData;
+        targetBuffer[0..srcBuffer.length] = srcBuffer[0..$];
     }
 
 
@@ -233,15 +240,6 @@ public:
         blPatternInitAs(&pattern, &img, null, BLExtendMode.BL_EXTEND_MODE_PAD, null);
 
         this.refresh();
-    }
-
-    override
-    void refresh() {
-        ubyte[] dataSlice = this.getImage().getData();
-
-        // Copy to surface
-        auto pdata = cast(ubyte*)data.pixelData;
-        pdata[0..dataSlice.length] = dataSlice[0..$];
     }
     
     /**

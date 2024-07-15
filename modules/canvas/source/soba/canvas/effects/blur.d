@@ -10,8 +10,8 @@
 */
 module soba.canvas.effects.blur;
 import soba.canvas.effect;
-import soba.canvas.canvas;
 import soba.canvas.ctx;
+import soba.canvas.image;
 import numem.all;
 import inmath;
 import core.stdc.stdio : printf;
@@ -30,142 +30,142 @@ private:
 
     // SIMD
     void blurSSE(bool direction)(ref SbContext ctx, recti area)  {
-        SbCanvas canvas = ctx.getTarget();
-        ptrdiff_t alignment = canvas.getAlign();
-        ptrdiff_t stride = canvas.getStride();
-        ubyte* data = canvas.lock();
+        // SbImage canvas = ctx.getTarget();
+        // ptrdiff_t alignment = canvas.getAlignment();
+        // ptrdiff_t stride = canvas.getStride();
+        // ubyte* data = canvas.lock();
 
-        foreach(y; area.top..area.bottom) {
-            foreach(x; area.left..area.right) {
+        // foreach(y; area.top..area.bottom) {
+        //     foreach(x; area.left..area.right) {
 
-                // Skip area that isn't in mask
-                if (ctx.isMasked()) {
-                    if (!ctx.isInMask(vec2i(x, y))) continue;
-                }
+        //         // Skip area that isn't in mask
+        //         if (ctx.isMasked()) {
+        //             if (!ctx.isInMask(vec2i(x, y))) continue;
+        //         }
                 
-                int sumCount = 1;
-                __m128i sum = getPixelSSE(data, vec2i(x, y), alignment, stride);
+        //         int sumCount = 1;
+        //         __m128i sum = getPixelSSE(data, vec2i(x, y), alignment, stride);
 
-                foreach(i; 0..blurSigma) {
-                    ptrdiff_t offset = (i+1);
-                    __m128i pixp = _mm_set1_epi32(0);
+        //         foreach(i; 0..blurSigma) {
+        //             ptrdiff_t offset = (i+1);
+        //             __m128i pixp = _mm_set1_epi32(0);
 
-                    static if (direction) {
+        //             static if (direction) {
 
-                        ptrdiff_t up = cast(ptrdiff_t)y-cast(ptrdiff_t)offset;
-                        ptrdiff_t down = cast(ptrdiff_t)y+cast(ptrdiff_t)offset;
-                        if (up >= area.top) {
-                            pixp = _mm_add_epi32(pixp, getPixelSSE(data, vec2i(x, cast(int)up), alignment, stride));
-                            sumCount++;
-                        }
+        //                 ptrdiff_t up = cast(ptrdiff_t)y-cast(ptrdiff_t)offset;
+        //                 ptrdiff_t down = cast(ptrdiff_t)y+cast(ptrdiff_t)offset;
+        //                 if (up >= area.top) {
+        //                     pixp = _mm_add_epi32(pixp, getPixelSSE(data, vec2i(x, cast(int)up), alignment, stride));
+        //                     sumCount++;
+        //                 }
 
-                        if (down <= area.bottom) {
-                            pixp = _mm_add_epi32(pixp, getPixelSSE(data, vec2i(x, cast(int)down), alignment, stride));
-                            sumCount++;
-                        }
-                    } else {
+        //                 if (down <= area.bottom) {
+        //                     pixp = _mm_add_epi32(pixp, getPixelSSE(data, vec2i(x, cast(int)down), alignment, stride));
+        //                     sumCount++;
+        //                 }
+        //             } else {
                         
-                        ptrdiff_t left = cast(ptrdiff_t)x-cast(ptrdiff_t)offset;
-                        ptrdiff_t right = cast(ptrdiff_t)x+cast(ptrdiff_t)offset;
-                        if (left >= area.left) {
-                            pixp = _mm_add_epi32(pixp, getPixelSSE(data, vec2i(cast(int)left, y), alignment, stride));
-                            sumCount++;
-                        }
+        //                 ptrdiff_t left = cast(ptrdiff_t)x-cast(ptrdiff_t)offset;
+        //                 ptrdiff_t right = cast(ptrdiff_t)x+cast(ptrdiff_t)offset;
+        //                 if (left >= area.left) {
+        //                     pixp = _mm_add_epi32(pixp, getPixelSSE(data, vec2i(cast(int)left, y), alignment, stride));
+        //                     sumCount++;
+        //                 }
 
-                        if (right <= area.right) {
-                            pixp = _mm_add_epi32(pixp, getPixelSSE(data, vec2i(cast(int)right, y), alignment, stride));
-                            sumCount++;
-                        }  
-                    }
+        //                 if (right <= area.right) {
+        //                     pixp = _mm_add_epi32(pixp, getPixelSSE(data, vec2i(cast(int)right, y), alignment, stride));
+        //                     sumCount++;
+        //                 }  
+        //             }
 
-                    // Set sum
-                    sum = _mm_add_epi32(sum, pixp);
-                }
+        //             // Set sum
+        //             sum = _mm_add_epi32(sum, pixp);
+        //         }
 
-                __m128 fsum = _mm_castsi128_ps(sum);
-                __m128 fcount = _mm_set1_ps(cast(float)sumCount);
-                __m128 result = _mm_div_ps(fsum, fcount);
-                setPixelSSE(data, vec2i(x, y), _mm_castps_si128(result), alignment, stride);
-            }
-        }
+        //         __m128 fsum = _mm_castsi128_ps(sum);
+        //         __m128 fcount = _mm_set1_ps(cast(float)sumCount);
+        //         __m128 result = _mm_div_ps(fsum, fcount);
+        //         setPixelSSE(data, vec2i(x, y), _mm_castps_si128(result), alignment, stride);
+        //     }
+        // }
 
-        canvas.unlock();
+        // canvas.unlock();
     }
 
     // NO SIMD
     void blur(bool direction)(ref SbContext ctx, recti area) {
-        SbCanvas canvas = ctx.getTarget();
-        ptrdiff_t alignment = canvas.getAlign();
-        ptrdiff_t stride = canvas.getStride();
-        ubyte* data = canvas.lock();
+        // SbCanvas canvas = ctx.getTarget();
+        // ptrdiff_t alignment = canvas.getAlign();
+        // ptrdiff_t stride = canvas.getStride();
+        // ubyte* data = canvas.lock();
 
-        foreach(y; area.top..area.bottom) {
-            foreach(x; area.left..area.right) {
+        // foreach(y; area.top..area.bottom) {
+        //     foreach(x; area.left..area.right) {
 
-                // Skip area that isn't in mask
-                if (ctx.isMasked()) {
-                    if (!ctx.isInMask(vec2i(x, y))) continue;
-                }
+        //         // Skip area that isn't in mask
+        //         if (ctx.isMasked()) {
+        //             if (!ctx.isInMask(vec2i(x, y))) continue;
+        //         }
 
-                // Largest pixel size possible is 4-byte aligned.
-                int sumCount = 1;
-                int[4] sum;
-                ubyte[4] acc;
+        //         // Largest pixel size possible is 4-byte aligned.
+        //         int sumCount = 1;
+        //         int[4] sum;
+        //         ubyte[4] acc;
 
-                foreach(i, pix; getPixel(data, vec2i(x, y), alignment, stride)) {
-                    sum[i] = cast(int)pix;
-                }
+        //         foreach(i, pix; getPixel(data, vec2i(x, y), alignment, stride)) {
+        //             sum[i] = cast(int)pix;
+        //         }
 
-                foreach(i; 1..blurSigma) {
-                    ptrdiff_t offset = (i+1);
-                    int[4] pixp;
+        //         foreach(i; 1..blurSigma) {
+        //             ptrdiff_t offset = (i+1);
+        //             int[4] pixp;
 
 
-                    static if (direction) {
+        //             static if (direction) {
 
-                        ptrdiff_t up = cast(ptrdiff_t)y-cast(ptrdiff_t)offset;
-                        ptrdiff_t down = cast(ptrdiff_t)y+cast(ptrdiff_t)offset;
-                        if (up >= area.top) {
-                            auto pixel = getPixel(data, vec2i(x, cast(int)up), alignment, stride);
-                            foreach(ix; 0..alignment) pixp[ix] += pixel[ix];
-                            sumCount++;
-                        }
+        //                 ptrdiff_t up = cast(ptrdiff_t)y-cast(ptrdiff_t)offset;
+        //                 ptrdiff_t down = cast(ptrdiff_t)y+cast(ptrdiff_t)offset;
+        //                 if (up >= area.top) {
+        //                     auto pixel = getPixel(data, vec2i(x, cast(int)up), alignment, stride);
+        //                     foreach(ix; 0..alignment) pixp[ix] += pixel[ix];
+        //                     sumCount++;
+        //                 }
 
-                        if (down <= area.bottom) {
-                            auto pixel = getPixel(data, vec2i(x, cast(int)down), alignment, stride);
-                            foreach(ix; 0..alignment) pixp[ix] += pixel[ix];
-                            sumCount++;
-                        }
-                    } else {
+        //                 if (down <= area.bottom) {
+        //                     auto pixel = getPixel(data, vec2i(x, cast(int)down), alignment, stride);
+        //                     foreach(ix; 0..alignment) pixp[ix] += pixel[ix];
+        //                     sumCount++;
+        //                 }
+        //             } else {
                         
-                        ptrdiff_t left = cast(ptrdiff_t)x-cast(ptrdiff_t)offset;
-                        ptrdiff_t right = cast(ptrdiff_t)x+cast(ptrdiff_t)offset;
-                        if (left >= area.left) {
-                            auto pixel = getPixel(data, vec2i(cast(int)left, y), alignment, stride);
-                            foreach(ix; 0..alignment) pixp[ix] += pixel[ix];
-                            sumCount++;
-                        }
+        //                 ptrdiff_t left = cast(ptrdiff_t)x-cast(ptrdiff_t)offset;
+        //                 ptrdiff_t right = cast(ptrdiff_t)x+cast(ptrdiff_t)offset;
+        //                 if (left >= area.left) {
+        //                     auto pixel = getPixel(data, vec2i(cast(int)left, y), alignment, stride);
+        //                     foreach(ix; 0..alignment) pixp[ix] += pixel[ix];
+        //                     sumCount++;
+        //                 }
 
-                        if (right <= area.right) {
-                            auto pixel = getPixel(data, vec2i(cast(int)right, y), alignment, stride);
-                            foreach(ix; 0..alignment) pixp[ix] += pixel[ix];
-                            sumCount++;
-                        }  
-                    }
+        //                 if (right <= area.right) {
+        //                     auto pixel = getPixel(data, vec2i(cast(int)right, y), alignment, stride);
+        //                     foreach(ix; 0..alignment) pixp[ix] += pixel[ix];
+        //                     sumCount++;
+        //                 }  
+        //             }
 
-                    // Set sum
-                    sum[0..4] += pixp[0..4];
-                }
+        //             // Set sum
+        //             sum[0..4] += pixp[0..4];
+        //         }
 
-                sum[0..4] /= sumCount;
-                foreach(i; 0..sum.length) {
-                    acc[i] = cast(ubyte)sum[i];
-                }
+        //         sum[0..4] /= sumCount;
+        //         foreach(i; 0..sum.length) {
+        //             acc[i] = cast(ubyte)sum[i];
+        //         }
 
-                setPixel(data, vec2i(x, y), acc[0..alignment], alignment, stride);
-            }
-        }
-        canvas.unlock();
+        //         setPixel(data, vec2i(x, y), acc[0..alignment], alignment, stride);
+        //     }
+        // }
+        // canvas.unlock();
     }
 
 public:
@@ -193,15 +193,15 @@ public:
     override
     void apply(SbContext ctx, recti clipArea) {
 
-        // Make sure we don't try reading pixels in invalid memory
-        clipArea.clip(recti(0, 0, ctx.getTarget().getWidth(), ctx.getTarget().getHeight()));
-        static if (!SSESizedVectorsAreEmulated) {
-            this.blurSSE!true(ctx, clipArea);
-            this.blurSSE!false(ctx, clipArea);
-        } else {
-            this.blur!true(ctx, clipArea);
-            this.blur!false(ctx, clipArea);
-        }
+        // // Make sure we don't try reading pixels in invalid memory
+        // clipArea.clip(recti(0, 0, ctx.getTarget().getWidth(), ctx.getTarget().getHeight()));
+        // static if (!SSESizedVectorsAreEmulated) {
+        //     this.blurSSE!true(ctx, clipArea);
+        //     this.blurSSE!false(ctx, clipArea);
+        // } else {
+        //     this.blur!true(ctx, clipArea);
+        //     this.blur!false(ctx, clipArea);
+        // }
     }
 }
 
@@ -239,76 +239,76 @@ private:
 
     // SIMD
     void blurSSE(bool direction)(ref SbContext ctx, recti area)  {
-        SbCanvas canvas = ctx.getTarget();
-        ptrdiff_t alignment = canvas.getAlign();
-        ptrdiff_t stride = canvas.getStride();
-        ubyte* data = canvas.lock();
+        // SbCanvas canvas = ctx.getTarget();
+        // ptrdiff_t alignment = canvas.getAlign();
+        // ptrdiff_t stride = canvas.getStride();
+        // ubyte* data = canvas.lock();
 
-        foreach(y; area.top..area.bottom) {
-            foreach(x; area.left..area.right) {
+        // foreach(y; area.top..area.bottom) {
+        //     foreach(x; area.left..area.right) {
 
-                // Skip area that isn't in mask
-                if (ctx.isMasked()) {
-                    if (!ctx.isInMask(vec2i(x, y))) continue;
-                }
+        //         // Skip area that isn't in mask
+        //         if (ctx.isMasked()) {
+        //             if (!ctx.isInMask(vec2i(x, y))) continue;
+        //         }
 
-                ptrdiff_t kernelCenter = radius;
-                __m128 sum = _mm_mul_ps(
-                    _mm_castsi128_ps(getPixelSSE(data, vec2i(x, y), alignment, stride)), 
-                    gaussianKernel[kernelCenter]
-                );
+        //         ptrdiff_t kernelCenter = radius;
+        //         __m128 sum = _mm_mul_ps(
+        //             _mm_castsi128_ps(getPixelSSE(data, vec2i(x, y), alignment, stride)), 
+        //             gaussianKernel[kernelCenter]
+        //         );
 
-                foreach(i; 0..radius) {
-                    ptrdiff_t offset = (i+1);
+        //         foreach(i; 0..radius) {
+        //             ptrdiff_t offset = (i+1);
 
-                    static if (direction) {
-                        ptrdiff_t up = cast(ptrdiff_t)y-cast(ptrdiff_t)offset;
-                        ptrdiff_t down = cast(ptrdiff_t)y+cast(ptrdiff_t)offset;
+        //             static if (direction) {
+        //                 ptrdiff_t up = cast(ptrdiff_t)y-cast(ptrdiff_t)offset;
+        //                 ptrdiff_t down = cast(ptrdiff_t)y+cast(ptrdiff_t)offset;
                         
-                        ptrdiff_t kup = kernelCenter-offset;
-                        ptrdiff_t kdown = kernelCenter+offset;
+        //                 ptrdiff_t kup = kernelCenter-offset;
+        //                 ptrdiff_t kdown = kernelCenter+offset;
 
-                        if (up >= area.top) {
-                            __m128 px = _mm_castsi128_ps(getPixelSSE(data, vec2i(x, cast(int)up), alignment, stride));
-                            __m128 gaussianV = _mm_set1_ps(gaussianKernel[kup]);
+        //                 if (up >= area.top) {
+        //                     __m128 px = _mm_castsi128_ps(getPixelSSE(data, vec2i(x, cast(int)up), alignment, stride));
+        //                     __m128 gaussianV = _mm_set1_ps(gaussianKernel[kup]);
 
-                            sum = _mm_add_ps(sum, _mm_mul_ps(px, gaussianV));
-                        }
+        //                     sum = _mm_add_ps(sum, _mm_mul_ps(px, gaussianV));
+        //                 }
 
-                        if (down <= area.bottom) {
-                            __m128 px = _mm_castsi128_ps(getPixelSSE(data, vec2i(x, cast(int)down), alignment, stride));
-                            __m128 gaussianV = _mm_set1_ps(gaussianKernel[kdown]);
+        //                 if (down <= area.bottom) {
+        //                     __m128 px = _mm_castsi128_ps(getPixelSSE(data, vec2i(x, cast(int)down), alignment, stride));
+        //                     __m128 gaussianV = _mm_set1_ps(gaussianKernel[kdown]);
 
-                            sum = _mm_add_ps(sum, _mm_mul_ps(px, gaussianV));
-                        }
-                    } else {
-                        ptrdiff_t left = cast(ptrdiff_t)x-offset;
-                        ptrdiff_t right = cast(ptrdiff_t)x+offset;
+        //                     sum = _mm_add_ps(sum, _mm_mul_ps(px, gaussianV));
+        //                 }
+        //             } else {
+        //                 ptrdiff_t left = cast(ptrdiff_t)x-offset;
+        //                 ptrdiff_t right = cast(ptrdiff_t)x+offset;
 
-                        ptrdiff_t kleft = kernelCenter-offset;
-                        ptrdiff_t kright = kernelCenter+offset;
+        //                 ptrdiff_t kleft = kernelCenter-offset;
+        //                 ptrdiff_t kright = kernelCenter+offset;
 
-                        if (left >= area.left) {
-                            __m128 px = _mm_castsi128_ps(getPixelSSE(data, vec2i(cast(int)left, y), alignment, stride));
-                            __m128 gaussianV = _mm_set1_ps(gaussianKernel[kleft]);
+        //                 if (left >= area.left) {
+        //                     __m128 px = _mm_castsi128_ps(getPixelSSE(data, vec2i(cast(int)left, y), alignment, stride));
+        //                     __m128 gaussianV = _mm_set1_ps(gaussianKernel[kleft]);
 
-                            sum = _mm_add_ps(sum, _mm_mul_ps(px, gaussianV));
-                        }
+        //                     sum = _mm_add_ps(sum, _mm_mul_ps(px, gaussianV));
+        //                 }
 
-                        if (right <= area.right) {
-                            __m128 px = _mm_castsi128_ps(getPixelSSE(data, vec2i(cast(int)right, y), alignment, stride));
-                            __m128 gaussianV = _mm_set1_ps(gaussianKernel[kright]);
+        //                 if (right <= area.right) {
+        //                     __m128 px = _mm_castsi128_ps(getPixelSSE(data, vec2i(cast(int)right, y), alignment, stride));
+        //                     __m128 gaussianV = _mm_set1_ps(gaussianKernel[kright]);
 
-                            sum = _mm_add_ps(sum, _mm_mul_ps(px, gaussianV));
-                        }
-                    }
-                }
+        //                     sum = _mm_add_ps(sum, _mm_mul_ps(px, gaussianV));
+        //                 }
+        //             }
+        //         }
 
-                setPixelSSE(data, vec2i(x, y), _mm_castps_si128(sum), alignment, stride);
-            }
-        }
+        //         setPixelSSE(data, vec2i(x, y), _mm_castps_si128(sum), alignment, stride);
+        //     }
+        // }
 
-        canvas.unlock();
+        // canvas.unlock();
     }
 
 public:
@@ -343,11 +343,11 @@ public:
     override
     void apply(SbContext ctx, recti clipArea) {
 
-        // Make sure we don't try reading pixels in invalid memory
-        clipArea.clip(recti(0, 0, ctx.getTarget().getWidth(), ctx.getTarget().getHeight()));
-        static if (!SSESizedVectorsAreEmulated) {
-            this.blurSSE!true(ctx, clipArea);
-            this.blurSSE!false(ctx, clipArea);
-        }
+        // // Make sure we don't try reading pixels in invalid memory
+        // clipArea.clip(recti(0, 0, ctx.getTarget().getWidth(), ctx.getTarget().getHeight()));
+        // static if (!SSESizedVectorsAreEmulated) {
+        //     this.blurSSE!true(ctx, clipArea);
+        //     this.blurSSE!false(ctx, clipArea);
+        // }
     }
 }

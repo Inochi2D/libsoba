@@ -6,7 +6,7 @@
 */
 module soba.canvas.cairo.mask;
 import soba.canvas.mask;
-import soba.canvas.canvas;
+import soba.canvas.image;
 import soba.canvas.ctx;
 import cairo;
 
@@ -24,7 +24,7 @@ public:
         parent = null;
     }
 
-    this(SbCanvasFormat fmt, SbContext parent, cairo_path_t* path) {
+    this(SbImageFormat fmt, SbContext parent, cairo_path_t* path) {
         super(fmt, parent);
         this.path = path;
 

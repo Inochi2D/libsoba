@@ -9,7 +9,7 @@
     Soba Canvas Rendering Context
 */
 module soba.canvas.ctx;
-import soba.canvas.canvas;
+import soba.canvas.image;
 import soba.canvas.pattern;
 import soba.canvas;
 import inmath.linalg;
@@ -17,7 +17,6 @@ import numem.all;
 
 import soba.canvas.cairo.ctx;
 import soba.canvas.blend2d.ctx;
-import soba.canvas.blend2d.canvas;
 import soba.canvas.mask;
 import soba.canvas.effect;
 
@@ -91,8 +90,103 @@ abstract
 class SbContext {
 @nogc:
 private:
-    SbCanvas target;
+    SbImage source;
+    SbImageLock* sourceLock;
+
+    SbImage target;
+    SbImageLock* lock;
     vector!(recti) clipRects;
+
+    bool acquire(SbImage img) {
+        lock = img.acquire();
+        if (lock) target = img;
+        return lock !is null;
+    } 
+
+    bool release() {
+        if (lock) {
+            target.release(lock);
+            target = null;
+            return true;
+        }
+        return false;
+    }
+
+protected:
+
+    shared_ptr!SbMask currentMask;
+    bool hasMask = false;
+
+    /**
+        Gets whether the lock is acquired
+    */
+    final
+    bool hasLock() {
+        return lock !is null;
+    }
+
+    /**
+        Gets the destination image lock
+    */
+    final
+    SbImageLock* getLock() {
+        return lock;
+    }
+
+    
+    /**
+        Sets an image source
+
+        Call with null to disable the image source.
+    */
+    bool setImageSource(SbImage source) {
+        
+        // Release source.
+        // This might look similar to the release old locks
+        // But this is for the case where source is null.
+        if (!source) {
+            
+            // Release old locks
+            if (this.sourceLock) {
+                this.source.release(this.sourceLock);
+                this.source = null;
+                this.sourceLock = null;
+            }
+            return true;
+        }
+
+        // Attempt to acquire lock.
+        auto lock = source.acquire();
+        if (lock) {
+
+            if (this.sourceLock) {
+                this.source.release(this.sourceLock);
+                this.source = null;
+                this.sourceLock = null;
+            }
+
+            this.source = source;
+            this.sourceLock = lock;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+        Gets whether the lock is acquired
+    */
+    final
+    bool hasSourceLock() {
+        return lock !is null;
+    }
+
+    /**
+        Gets the source image lock
+    */
+    final
+    SbImageLock* getSourceLock() {
+        return lock;
+    }
 
 public:
 
@@ -103,19 +197,18 @@ public:
     /**
         Creates a context for the specified canvas
     */
-    this(SbCanvas target) {
-        this.target = target;
+    this() {
     }
 
     /**
         Static helper function which creates a context using the same backend as the canvas
     */
-    static shared_ptr!SbContext create(SbCanvas canvas) {
-        switch(canvas.getBackend()) {
+    static shared_ptr!SbContext create() {
+        switch(cnvBackendGet()) {
             case SbCanvasBackend.blend2D:
-                return shared_ptr!SbContext.fromPtr(nogc_new!SbBLContext(canvas)); 
+                return shared_ptr!SbContext.fromPtr(nogc_new!SbBLContext()); 
             case SbCanvasBackend.cairo:
-                return shared_ptr!SbContext.fromPtr(nogc_new!SbCairoContext(canvas));
+                return shared_ptr!SbContext.fromPtr(nogc_new!SbCairoContext());
             default:
                 shared_ptr!SbContext ctx;
                 return ctx;
@@ -126,9 +219,28 @@ public:
         Returns the target of this context's drawing operations
     */
     final
-    SbCanvas getTarget() {
+    SbImage getTarget() {
         return target;
     }
+
+    /**
+        Begins drawing to the image
+    */
+    bool begin(SbImage target) {
+        return this.acquire(target);
+    }
+
+    /**
+        Ends drawing to the image, removing the lock to it
+    */
+    bool end() {
+        return this.release();
+    }
+
+    /**
+        Clears the contents of the destination
+    */
+    abstract void clear();
 
     /**
         Returns the underlying handle of this context
@@ -350,7 +462,7 @@ public:
     /**
         Sets the source for rendering
     */
-    abstract void setSource(SbCanvas canvas, vec2 offset=vec2(0));
+    abstract void setSource(SbImage image, vec2 offset=vec2(0));
 
     /**
         Flushes drawing operations

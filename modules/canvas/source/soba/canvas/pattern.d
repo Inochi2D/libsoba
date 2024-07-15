@@ -185,22 +185,32 @@ public:
 }
 
 /**
-    A pattern made from a passed SbImage
-    This SbImagePattern does NOT own the SbImage memory.
+    A pattern which allows an image to be drawn.
+    The pattern acquires the lock for the image,
+    and it can not be written to while being used as a pattern.
 
-    SbImage needs to be freed seperately.
+    To unlock the image, simply delete/destroy the SbImagePattern instance.
 */
 abstract
 class SbImagePattern : SbPattern {
 @nogc:
 private:
     SbImage image;
+    SbImageLock* lock;
+
+protected:
+
+    /// Allows getting the address to the pixel data.
+    ubyte[] getData() {
+        return lock.data[0..lock.dataLength];
+    }
 
 public:
 
     ~this() {
 
         // Just in case that D thinks it should delete image.
+        image.release(lock);
         image = null;
     }
 
@@ -209,6 +219,7 @@ public:
     */
     this(SbImage image) {
         this.image = image;
+        lock = image.acquire();
     }
 
     /**
@@ -248,9 +259,4 @@ public:
                 return shared_ptr!SbImagePattern.fromPtr(nogc_new!SbCairoImagePattern(image));
         }
     }
-
-    /**
-        Refresh the pattern data
-    */
-    abstract void refresh();
 }

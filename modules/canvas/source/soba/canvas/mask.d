@@ -9,7 +9,7 @@
     Soba Canvas Masking
 */
 module soba.canvas.mask;
-import soba.canvas.canvas;
+import soba.canvas.image;
 import soba.canvas.ctx;
 
 /**
@@ -19,7 +19,7 @@ abstract
 class SbMask {
 @nogc:
 private:
-    SbCanvasFormat fmt;
+    SbImageFormat fmt;
     SbContext parent;
 
 protected: 
@@ -28,7 +28,7 @@ protected:
 public:
 
     // Constructor
-    this(SbCanvasFormat fmt, SbContext parent) {
+    this(SbImageFormat fmt, SbContext parent) {
         this.fmt = fmt;
         this.parent = parent;
     }

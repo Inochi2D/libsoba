@@ -7,7 +7,7 @@
 
 module soba.canvas.blend2d.ctx;
 import soba.canvas.ctx;
-import soba.canvas.canvas;
+import soba.canvas.image;
 import soba.canvas.pattern;
 import soba.canvas.mask;
 import math = inmath.linalg;
@@ -15,7 +15,7 @@ import inmath.linalg : vec2, vec3, vec4, recti, vec2i;
 import inmath.math : max, radians, clamp;
 import blend2d;
 import soba.canvas.blend2d.mask;
-import soba.canvas.blend2d.canvas;
+import soba.canvas.blend2d;
 import numem.all;
 
 class SbBLContext : SbContext {
@@ -24,8 +24,10 @@ private:
     BLContext ctx;
     BLPath path;
     SbBlendOperator op;
-    shared_ptr!SbMask currentMask;
-    bool hasMask = false;
+    BLImage targetImage;
+
+    BLImage srcImage;
+    BLPattern srcPattern;
 
     void applyClipRects() {
         blContextRestoreClipping(&ctx);
@@ -55,12 +57,42 @@ private:
         return cast(bool)r.intersects(point);
     }
 
+protected:
+
+    override
+    bool setImageSource(SbImage source) {
+        bool success = super.setImageSource(source);
+        blImageReset(&srcImage);
+        
+        // Destroy was requested.
+        if (!source)
+            return success;
+
+        // Creation was requested
+        SbImageLock* lock = this.getSourceLock();
+        blImageCreateFromData(
+            &targetImage,
+            lock.width, 
+            lock.height, 
+            source.getFormat().toBLFormat(),
+            lock.data,
+            lock.stride,
+            BLDataAccessFlags.BL_DATA_ACCESS_RW,
+            null,
+            null
+        );
+        
+        return success;
+    }
+
 public:
 
     /**
         Destructor
     */
     ~this() {
+        blImageDestroy(&targetImage);
+        blImageDestroy(&srcImage);
         blPathDestroy(&path);
         blContextDestroy(&ctx);
     }
@@ -68,18 +100,61 @@ public:
     /**
         Creates context for canvas
     */
-    this(SbCanvas canvas) {
-        super(canvas);
+    this() {
         BLContextCreateInfo cInfo;
         cInfo.reset();
 
-        blContextInitAs(&ctx, cast(BLImage*)canvas.getHandle(), &cInfo);
+        // Target rendering
+        blContextInit(&ctx);
+        blImageInit(&targetImage);
         blPathInit(&path);
 
-        blContextClearAll(&ctx);
+        // Source pattern
+        blImageInit(&srcImage);
+        blPatternInit(&srcPattern);
 
         // Default in cairo is OVER
         this.op = SbBlendOperator.sourceOver;
+    }
+
+    override
+    bool begin(SbImage target) {
+        bool begun = super.begin(target);
+        if (begun) {
+            SbImageLock* lock = this.getLock();
+            blImageCreateFromData(
+                &targetImage,
+                lock.width, 
+                lock.height, 
+                target.getFormat().toBLFormat(),
+                lock.data,
+                lock.stride,
+                BLDataAccessFlags.BL_DATA_ACCESS_RW,
+                null,
+                null
+            );
+            blContextBegin(&ctx, &targetImage, null);
+        }
+
+        return begun;
+    }
+
+    override
+    bool end() {
+        if (hasLock()) {
+            
+            // End rendering
+            blContextEnd(&ctx);
+            blImageReset(&targetImage);
+        }
+
+        return super.end();
+    }
+
+    override
+    void clear() {
+        if (!hasLock()) return;
+        blContextClearAll(&ctx);
     }
 
     override
@@ -89,6 +164,7 @@ public:
 
     override
     SbContextCookie save() {
+        if (!hasLock()) return null;
 
         // TODO: cookies in Blend2D are stack allocated, figure out a good way to handle that.
         blContextSave(&ctx, null);
@@ -97,6 +173,8 @@ public:
 
     override
     void restore(SbContextCookie) {
+        if (!hasLock()) return;
+
         blContextRestore(&ctx, null);
     }
 
@@ -476,10 +554,13 @@ public:
     }
 
     override
-    void setSource(SbCanvas canvas, vec2 offset) {
-        if(auto blc = cast(SbBLCanvas)canvas) {
-            blContextSetFillStyle(&ctx, blc.getPatternHandle());
-            blContextSetStrokeStyle(&ctx, blc.getPatternHandle());
+    void setSource(SbImage source, vec2 offset) {
+        if(source) {
+            blContextSetFillStyle(&ctx, &srcPattern);
+            blContextSetStrokeStyle(&ctx, &srcPattern);
+        } else {
+            BLRgba rgba = BLRgba(0, 0, 0, 1);
+            blContextSetFillStyleRgba(&ctx, &rgba);
         }
     }
 

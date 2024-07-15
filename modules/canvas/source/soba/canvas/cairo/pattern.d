@@ -8,7 +8,6 @@
 module soba.canvas.cairo.pattern;
 import soba.canvas.pattern;
 import soba.canvas.image;
-import soba.canvas.canvas;
 import cairo;
 import inmath.linalg;
 import numem.all;
@@ -222,13 +221,23 @@ private:
     cairo_surface_t* surface;
     cairo_format_t getCairoFormatType() {
         final switch(this.getImage().getFormat()) {
-            case SbImageFormat.None:    return cairo_format_t.CAIRO_FORMAT_INVALID;
-            case SbImageFormat.A8:      return cairo_format_t.CAIRO_FORMAT_A8;
-            case SbImageFormat.RGB:     return cairo_format_t.CAIRO_FORMAT_RGB24;
-            case SbImageFormat.RGBA:    return cairo_format_t.CAIRO_FORMAT_ARGB32;
+            case SbImageFormat.None:      return cairo_format_t.CAIRO_FORMAT_INVALID;
+            case SbImageFormat.A8:        return cairo_format_t.CAIRO_FORMAT_A8;
+            case SbImageFormat.RGB32:     return cairo_format_t.CAIRO_FORMAT_RGB24;
+            case SbImageFormat.RGBA32:    return cairo_format_t.CAIRO_FORMAT_ARGB32;
         }
     }
 
+    void refresh() {
+        ubyte[] dataSlice = this.getData();
+
+        // Copy to surface
+        auto data = cairo_image_surface_get_data(this.surface);
+        data[0..dataSlice.length] = dataSlice[0..$];
+
+        // Flush the surface.
+        cairo_surface_mark_dirty(this.surface);
+    }
 
 public:
 
@@ -247,18 +256,5 @@ public:
         );
         this.pattern = cairo_pattern_create_for_surface(surface);
         this.refresh();
-    }
-
-    override
-    void refresh() {
-        SbImage image = this.getImage();
-        ubyte[] dataSlice = image.getData();
-
-        // Copy to surface
-        auto data = cairo_image_surface_get_data(this.surface);
-        data[0..dataSlice.length] = dataSlice[0..$];
-
-        // Flush the surface.
-        cairo_surface_mark_dirty(this.surface);
     }
 }

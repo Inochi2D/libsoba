@@ -7,20 +7,27 @@
 
 module soba.canvas.cairo.ctx;
 import soba.canvas.ctx;
-import soba.canvas.canvas;
 import soba.canvas.pattern;
 import soba.canvas.mask;
+import soba.canvas.image;
 import math = inmath.linalg;
 import inmath.linalg : vec2, vec3, vec4, recti, vec2i;
 import inmath.math : max, radians, clamp;
 import cairo;
 import soba.canvas.cairo.mask;
+import soba.canvas.cairo;
 import numem.all;
 
 class SbCairoContext : SbContext {
 @nogc:
 private:
+
+    // Cairo primitives
     cairo_t* cr;
+    cairo_surface_t* surface;
+    cairo_surface_t* srcSurface;
+    
+    // Other primitives
     SbBlendOperator op;
     shared_ptr!SbMask currentMask;
     bool hasMask = false;
@@ -53,6 +60,35 @@ private:
         return cast(bool)cairo_in_clip(cr, point.x, point.y);
     }
 
+protected:
+
+    override
+    bool setImageSource(SbImage source) {
+        bool success = super.setImageSource(source);
+
+        // Anything to destroy?
+        if (srcSurface) {
+            cairo_surface_destroy(srcSurface);
+            srcSurface = null;
+        }
+        
+        // Destroy was requested.
+        if (!source)
+            return success;
+
+        // Creation was requested
+        SbImageLock* lock = this.getSourceLock();
+        this.srcSurface = cairo_image_surface_create_for_data(
+            lock.data,
+            source.getFormat().toCairoFormat,
+            lock.width,
+            lock.height,
+            cast(int)lock.stride
+        );
+        
+        return success;
+    }
+
 public:
 
     /**
@@ -65,12 +101,45 @@ public:
     /**
         Creates context for canvas
     */
-    this(SbCanvas canvas) {
-        super(canvas);
-        this.cr = cairo_create(cast(cairo_surface_t*)canvas.getHandle());
+    this() {
 
         // Default in cairo is OVER
         this.op = SbBlendOperator.sourceOver;
+    }
+
+    override
+    bool begin(SbImage target) {
+        bool begun = super.begin(target);
+        if (begun) {
+            SbImageLock* lock = this.getLock();
+
+            this.surface = cairo_image_surface_create_for_data(
+                lock.data,
+                target.getFormat().toCairoFormat,
+                lock.width,
+                lock.height,
+                cast(int)lock.stride
+            );
+
+            this.cr = cairo_create(this.surface);
+        }
+        return begun;
+    }
+
+    override
+    bool end() {
+        if (hasLock()) {
+            cairo_surface_flush(surface);
+
+            cairo_destroy(cr);
+            cairo_surface_destroy(surface);
+        }
+
+        return super.end();
+    }
+    override
+    void clear() {
+        cairo_fill(cr);
     }
 
     override
@@ -442,22 +511,31 @@ public:
     */
     override
     void setSource(vec4 color) {
+        this.setImageSource(null);
         cairo_set_source_rgba(cr, color.x, color.y, color.z, color.w);
     }
 
     override
     void setSource(vec3 color) {
+        this.setImageSource(null);
         cairo_set_source_rgb(cr, color.x, color.y, color.z);
     }
 
     override
     void setSource(SbPattern pattern) {
+        this.setImageSource(null);
         cairo_set_source(cr, cast(cairo_pattern_t*)pattern.getHandle());
     }
 
     override
-    void setSource(SbCanvas canvas, vec2 offset) {
-        cairo_set_source_surface(cr, cast(cairo_surface_t*)canvas.getHandle(), offset.x, offset.y);
+    void setSource(SbImage canvas, vec2 offset) {
+        if (this.setImageSource(canvas) && this.srcSurface) {
+            cairo_set_source_surface(cr, this.srcSurface, offset.x, offset.y);
+        } else {
+
+            // Fallback, set to black.
+            cairo_set_source_rgb(cr, 0, 0, 0);
+        }
     }
 
     override

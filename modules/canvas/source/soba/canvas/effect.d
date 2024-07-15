@@ -9,7 +9,6 @@
     Soba Canvas Effects
 */
 module soba.canvas.effect;
-import soba.canvas.canvas;
 import soba.canvas.ctx;
 import numem.all;
 import inmath;

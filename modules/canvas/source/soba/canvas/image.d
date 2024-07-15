@@ -27,19 +27,43 @@ enum SbImageFormat {
     /**
         RGB image, aligned to a 4 byte boundary
     */
-    RGB,
+    RGB32,
 
     /**
         RGBA image, aligned to a 4 byte boundary
         
         Stored in ARGB order.
     */
-    RGBA
+    RGBA32
+}
+
+/**
+    A structure which allows modifying a texture once locked.
+*/
+struct SbImageLock {
+@nogc:
+private:
+    SbImage parent;
+    bool acquired;
+
+public:
+    ubyte* data;
+    size_t dataLength;
+    int width;
+    int height;
+    size_t stride;
+
+    this(SbImage parent) {
+        this.parent = parent;
+        this.acquired = false;
+    }
 }
 
 class SbImage {
 @nogc:
 private:
+    SbImageLock rwLock;
+
     vector!ubyte pixels;
     uint width, height;
     uint channels;
@@ -51,9 +75,9 @@ private:
         switch(channels) {
             default:    fmt = SbImageFormat.None;   return;
             case 1:     fmt = SbImageFormat.A8;     return;
-            case 3:     fmt = SbImageFormat.RGB;    return;
+            case 3:     fmt = SbImageFormat.RGB32;    return;
             case 4:
-                fmt = SbImageFormat.RGBA;
+                fmt = SbImageFormat.RGBA32;
                 return;
         }
     }
@@ -72,18 +96,72 @@ private:
         }
     }
 
-    void setFromImage(ref IFImage img) {
-        if (img.c == 4) {
+    // Sets buffer from PNG aligned data
+    void setFromBuffer(ref ubyte[] buffer, int channels, int width, int height) {
+        
+        // Dangerous operation!
+        if (buffer.length != width*height*channels) return;
+
+        // Alignment
+        size_t realAlign = getAlignmentForChannels(channels);
+        ubyte[] destination;
+        ubyte[] source;
+
+        // Temporary buffer
+        // This temporary buffer is here to allow conversion.
+        vector!ubyte tmp;
+
+        // Realign data
+        if (realAlign != 1 && realAlign % buffer.length != 0) {
+
+            // Proper alignment
+            tmp.resize(width*height*realAlign);
+            destination = tmp.toSlice();
+
+            foreach(i; 0..width*height) {
+
+                // Realign the data
+                size_t srcOffset = channels*i;
+                size_t dstOffset = realAlign*i;
+                foreach(c; 0..channels) {
+                    destination[dstOffset+c] = buffer[srcOffset+c];
+                }
+            }
+
+        } else {
+
+            // No realignment
+            tmp.resize(buffer.length);
+            destination = tmp.toSlice();
+
+            // Copy data over
+            destination[0..$] = buffer[0..$];
+        }
+
+        // Copy data over
+        pixels = vector!ubyte(tmp);
+
+        // Premult alpha and bgra conversion.
+        if (realAlign == 4) {
+
+            // Source/destination changes in this case for bgra and premult calculation.
+            source = tmp.toSlice();
+            destination = pixels.toSlice(); 
 
             // Premultiply alpha
-            this.premult(img.buf8);
-
-            // Align to ARGB
-            pixels.resize(img.buf8.length);
-            conv_rgba2bgra(img.buf8, pixels.toSlice());
-        } else {
-            this.pixels = vector!ubyte(img.buf8);
+            this.premult(source);
+            // conv_rgba2bgra(source, destination);
         }
+
+        // Aaaand we're done.
+        this.alignment = cast(uint)realAlign;
+        this.width = width;
+        this.height = height;
+        this.channels = channels;
+        this.setFmt();
+
+        // Done with tmp buffer.
+        nogc_delete(tmp);
     }
 
 protected:
@@ -104,37 +182,53 @@ public:
         Creates a blank image
     */
     this(uint width, uint height, uint channels) {
+        size_t realAlign = getAlignmentForChannels(channels);
+        this.alignment = cast(uint)realAlign;
+
         this.width = width;
         this.height = height;
         this.channels = channels;
-        pixels.reserve(width*height*channels);
+        this.rwLock = SbImageLock(this);
+        
         this.setFmt();
+
+        if(this.fmt != SbImageFormat.None) {        
+            pixels.resize(width*height*realAlign);
+        }
+    }
+
+    /**
+        Creates an 8 bit image
+    */
+    this(ubyte[] data, uint width, uint height, uint channels) {
+        this.rwLock = SbImageLock(this);
+        this.setFromBuffer(data, channels, width, height);
     }
 
     /**
         Creates an image from file
     */
     this(nstring file) {
+        this.rwLock = SbImageLock(this);
 
         IFInfo info = read_info(file.toDString());
         if (info.e == 0) {
-            this.channels = info.c;
-            this.width = info.w;
-            this.height = info.h;
-
-            this.alignment = this.getAlignmentForChannels(info.c);
 
             // Read the image
             IFImage img = read_image(file.toDString, this.alignment);
             if (img.e == 0) {
-                this.setFmt();
-                this.setFromImage(img);
+                this.setFromBuffer(img.buf8, info.c, info.w, info.h);
             }
 
+            // This setFmt call is here to catch error states.
+            this.setFmt();
             img.free();
         }
     }
 
+    /**
+        Frees the image
+    */
     ~this() {
         nogc_delete(pixels);
     }
@@ -144,7 +238,7 @@ public:
     */
     final
     uint getStride() {
-        return width*channels;
+        return width*alignment;
     }
     /**
         Gets the width of the image
@@ -187,12 +281,96 @@ public:
     }
 
     /**
-        Gets a pointer to the data
+        Attempts to resize the image.
+        Note: the image needs to be unlocked before it can be resized.
 
-        This data is owned by the SbImage and should not be freed.
+        Returns whether this action succeded.
     */
     final
-    ubyte[] getData() {
-        return pixels[0..$];
+    bool resize(uint width, uint height) {
+        SbImageLock* lock = acquire();
+        if (lock) {
+            
+            this.width = width;
+            this.height = height;
+            this.pixels.resize(width*height*alignment);
+
+            release(lock);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+        Attempts to acquire the lock for the image
+
+        Returns a reference to the image lock if successful.
+        Returns null otherwise.
+    */
+    final
+    SbImageLock* acquire() {
+        if (!rwLock.acquired && rwLock.parent is this) {
+            rwLock.acquired = true;
+            rwLock.data = pixels.data;
+            rwLock.dataLength = pixels.size();
+
+            // Data needed by context
+            rwLock.width = width;
+            rwLock.height = height;
+            rwLock.stride = width*alignment;
+            return &rwLock;
+        }
+
+        return null;
+    }
+
+    /**
+        Releases the image lock
+    */
+    final
+    void release(ref SbImageLock* lock) {
+        if (lock && lock.acquired) {
+            (*lock).acquired = false;
+            lock = null;
+        }
+    }
+
+    /**
+        Gets whether the lock for the image has been acquired
+    */
+    final
+    bool isLocked() {
+        return rwLock.acquired;
+    }
+
+    /**
+        Writes content of the canvas to file
+    */
+    final
+    void writeToFile(nstring name) {
+        this.writeToFile(name.toDString());
+    }
+
+    /**
+        Writes content of the canvas to file
+    */
+    final
+    void writeToFile(string name) {
+        SbImageLock* lock = this.acquire();
+        if (lock) {
+
+            // NOTE: imagefmt takes RGBA data in RGBA order, not BGRA.
+            // This temporary buffer is here to allow conversion.
+            vector!ubyte tmp = vector!ubyte(lock.data[0..lock.dataLength]);
+            if (channels == 4) {
+                conv_rgba2bgra(pixels.toSlice(), tmp.toSlice());
+            }
+
+            write_image(name, width, height, tmp.toSlice(), alignment);
+
+            nogc_delete(tmp);
+            this.release(lock);
+        }
     }
 }
