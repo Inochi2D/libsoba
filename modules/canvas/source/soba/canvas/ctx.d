@@ -91,6 +91,7 @@ class SbContext {
 @nogc:
 private:
     SbImagePattern imageSource;
+    SbGlyphBuffer buffer;
 
     SbImage target;
     SbImageLock* lock;
@@ -163,6 +164,7 @@ public:
     ~this() {
         this.clearImageSource();
         nogc_delete(clipRects);
+        nogc_delete(buffer);
     }
 
     /**
@@ -170,20 +172,20 @@ public:
     */
     this() {
         imageSource = null;
+        buffer = nogc_new!SbGlyphBuffer();
     }
 
     /**
         Static helper function which creates a context using the same backend as the canvas
     */
-    static shared_ptr!SbContext create() {
+    static SbContext create() {
         switch(cnvBackendGet()) {
             case SbCanvasBackend.blend2D:
-                return shared_ptr!SbContext.fromPtr(nogc_new!SbBLContext()); 
+                return nogc_new!SbBLContext(); 
             case SbCanvasBackend.cairo:
-                return shared_ptr!SbContext.fromPtr(nogc_new!SbCairoContext());
+                return nogc_new!SbCairoContext();
             default:
-                shared_ptr!SbContext ctx;
-                return ctx;
+                return null;
         }
     }
 
@@ -304,6 +306,16 @@ public:
     abstract void strokePreserve();
 
     /**
+        Draws the specified text
+    */
+    abstract void fillText(SbFont font, SbGlyph[] glyphs, vec2 position);
+
+    /**
+        Draws the specified text
+    */
+    abstract void strokeText(SbFont font, SbGlyph[] glyphs, vec2 position);
+
+    /**
         Creates a mask for the current path.
 
         Use setMask to use it.
@@ -415,6 +427,30 @@ public:
         Gets the extents of the current path
     */
     abstract inmath.linalg.rect getPathExtents();
+
+    /**
+        Draws the specified text
+    */
+    final
+    void fillText(SbFont font, nstring text, vec2 position) {
+        buffer.addText(text);
+        buffer.shape(font);
+
+        this.fillText(font, buffer.getGlyphs(), position);
+        buffer.reset();
+    }
+
+    /**
+        Draws the specified text
+    */
+    final
+    void strokeText(SbFont font, nstring text, vec2 position) {
+        buffer.addText(text);
+        buffer.shape(font);
+
+        this.strokeText(font, buffer.getGlyphs(), position);
+        buffer.reset();
+    }
 
     /**
         Sets the source color for rendering

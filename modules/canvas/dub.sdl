@@ -6,6 +6,7 @@ license "BSD-2-Clause"
 
 dependency "i2d-cairo" version="~>1.0.1"
 dependency "i2d-blend2d" version="*"
+dependency "i2d-harfbuzz" version="*"
 dependency "inmath" version="*"
 dependency "numem" version="*"
 dependency "intel-intrinsics" version="~>1.11.18"

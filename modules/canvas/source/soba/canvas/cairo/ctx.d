@@ -10,6 +10,7 @@ import soba.canvas.ctx;
 import soba.canvas.pattern;
 import soba.canvas.mask;
 import soba.canvas.image;
+import soba.canvas.text;
 import math = inmath.linalg;
 import inmath.linalg : vec2, vec3, vec4, recti, vec2i;
 import inmath.math : max, radians, clamp;
@@ -319,6 +320,22 @@ public:
         if (!hasLock()) return;
         
         cairo_stroke_preserve(cr);
+    }
+
+    /**
+        Draws the specified text
+    */
+    override
+    void fillText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+
+    }
+
+    /**
+        Draws the specified text
+    */
+    override
+    void strokeText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+
     }
 
     /**

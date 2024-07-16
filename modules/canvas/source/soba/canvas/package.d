@@ -12,11 +12,13 @@ module soba.canvas;
 import soba.canvas.ctx;
 import cairo;
 import blend2d;
+import harfbuzz;
 
 public import soba.canvas.ctx;
 public import soba.canvas.pattern;
 public import soba.canvas.effects;
 public import soba.canvas.image;
+public import soba.canvas.text;
 
 private {
     __gshared SbCanvasBackend cnvBackend;
@@ -44,12 +46,16 @@ bool cnvInit(SbCanvasBackend preferredBackend = SbCanvasBackend.blend2D) {
             return false;
 
         case SbCanvasBackend.blend2D:
+            if (!cnvInitHarfbuzz()) return false;
+
             if (!cnvInitBlend2D()) {
                 return cnvInitCairo();
             }
             return false;
 
         case SbCanvasBackend.cairo:
+            if (!cnvInitHarfbuzz()) return false;
+
             if (!cnvInitCairo()) {
                 return cnvInitBlend2D();
             }
@@ -85,4 +91,9 @@ bool cnvInitCairo() {
         return true;
     }
     return false;
+}
+
+bool cnvInitHarfbuzz() {
+    HarfBuzzSupport hbsupport = loadHarfBuzz();
+    return hbsupport == HarfBuzzSupport.harfbuzz;
 }

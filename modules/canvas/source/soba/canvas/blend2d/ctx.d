@@ -17,6 +17,7 @@ import blend2d;
 import soba.canvas.blend2d.mask;
 import soba.canvas.blend2d;
 import numem.all;
+import soba.canvas.text;
 
 class SbBLContext : SbContext {
 @nogc:
@@ -60,12 +61,14 @@ protected:
     void setSourceImpl(vec4 color) {
         BLRgba rgba = BLRgba(color.x, color.y, color.z, color.w);
         blContextSetFillStyleRgba(&ctx, &rgba);
+        blContextSetStrokeStyleRgba(&ctx, &rgba);
     }
 
     override
     void setSourceImpl(vec3 color) {
         BLRgba rgba = BLRgba(color.x, color.y, color.z, 1);
         blContextSetFillStyleRgba(&ctx, &rgba);
+        blContextSetStrokeStyleRgba(&ctx, &rgba);
     }
 
     override
@@ -473,6 +476,42 @@ public:
     override
     void closePath() {
         blPathClose(&path);
+    }
+
+    /**
+        Draws the specified text
+    */
+    override
+    void fillText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        BLPoint p = position;
+
+        BLGlyphRun run;
+        run.placementType = BLGlyphPlacementType.BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET;
+        run.size = glyphs.length;
+        run.glyphData = cast(void*)glyphs.ptr;
+        run.placementData = (cast(void*)glyphs.ptr)+SbGlyph.xOffset.offsetof;
+        run.glyphAdvance = SbGlyph.sizeof;
+        run.placementAdvance = SbGlyph.sizeof;
+
+        blContextFillGlyphRunD(&ctx, &p, cast(BLFont*)font.getDrawHandle(), &run);
+    }
+
+    /**
+        Draws the specified text
+    */
+    override
+    void strokeText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        BLPoint p = position;
+
+        BLGlyphRun run;
+        run.placementType = BLGlyphPlacementType.BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET;
+        run.size = glyphs.length;
+        run.glyphData = cast(void*)glyphs.ptr;
+        run.placementData = (cast(void*)glyphs.ptr)+SbGlyph.xOffset.offsetof;
+        run.glyphAdvance = SbGlyph.sizeof;
+        run.placementAdvance = SbGlyph.sizeof;
+
+        blContextStrokeGlyphRunD(&ctx, &p, cast(BLFont*)font.getDrawHandle(), &run);
     }
 
     override
