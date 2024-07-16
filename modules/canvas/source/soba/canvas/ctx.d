@@ -90,8 +90,7 @@ abstract
 class SbContext {
 @nogc:
 private:
-    SbImage source;
-    SbImageLock* sourceLock;
+    SbImagePattern imageSource;
 
     SbImage target;
     SbImageLock* lock;
@@ -133,64 +132,36 @@ protected:
         return lock;
     }
 
-    
     /**
-        Sets an image source
-
-        Call with null to disable the image source.
-    */
-    bool setImageSource(SbImage source) {
-        
-        // Release source.
-        // This might look similar to the release old locks
-        // But this is for the case where source is null.
-        if (!source) {
-            
-            // Release old locks
-            if (this.sourceLock) {
-                this.source.release(this.sourceLock);
-                this.source = null;
-                this.sourceLock = null;
-            }
-            return true;
-        }
-
-        // Attempt to acquire lock.
-        auto lock = source.acquire();
-        if (lock) {
-
-            if (this.sourceLock) {
-                this.source.release(this.sourceLock);
-                this.source = null;
-                this.sourceLock = null;
-            }
-
-            this.source = source;
-            this.sourceLock = lock;
-            return true;
-        }
-        return false;
-    }
-
-    /**
-        Gets whether the lock is acquired
+        Clears the image source currently attached.
     */
     final
-    bool hasSourceLock() {
-        return lock !is null;
+    void clearImageSource() {
+        if (imageSource) {
+            nogc_delete(imageSource);
+            imageSource = null;
+        }
     }
 
     /**
-        Gets the source image lock
+        Sets the source color for rendering
     */
-    final
-    SbImageLock* getSourceLock() {
-        return lock;
-    }
+    abstract void setSourceImpl(vec4 color);
+
+    /**
+        Sets the source color for rendering
+    */
+    abstract void setSourceImpl(vec3 color);
+
+    /**
+        Sets the source pattern for rendering
+    */
+    abstract void setSourceImpl(SbPattern pattern, vec2 offset=vec2(0));
 
 public:
 
     ~this() {
+        this.clearImageSource();
         nogc_delete(clipRects);
     }
 
@@ -198,6 +169,7 @@ public:
         Creates a context for the specified canvas
     */
     this() {
+        imageSource = null;
     }
 
     /**
@@ -236,11 +208,6 @@ public:
     bool end() {
         return this.release();
     }
-
-    /**
-        Clears the contents of the destination
-    */
-    abstract void clear();
 
     /**
         Returns the underlying handle of this context
@@ -306,6 +273,11 @@ public:
         Gets the current line width
     */
     abstract float getLineWidth(float width);
+
+    /**
+        Clears the contents of the destination
+    */
+    abstract void clearAll();
 
     /**
         Fills the current path
@@ -445,29 +417,55 @@ public:
     abstract inmath.linalg.rect getPathExtents();
 
     /**
-        Sets the color of the sourde
+        Sets the source color for rendering
     */
-    abstract void setSource(vec4 color);
+    final
+    void setSource(vec4 color) {
+        this.clearImageSource();
+        this.setSourceImpl(color);
+    }
 
     /**
-        Sets the color of the sourde
+        Sets the source color for rendering
     */
-    abstract void setSource(vec3 color);
+    final
+    void setSource(vec3 color) {
+        this.clearImageSource();
+        this.setSourceImpl(color);
+    }
 
     /**
-        Sets the source for rendering
+        Sets the source pattern for rendering
     */
-    abstract void setSource(SbPattern pattern);
+    final
+    void setSource(SbPattern pattern, vec2 offset=vec2(0)) {
+        this.clearImageSource();
+        this.setSourceImpl(pattern, offset);
+    }
 
     /**
-        Sets the source for rendering
-    */
-    abstract void setSource(SbImage image, vec2 offset=vec2(0));
+        Sets the source image for rendering
 
-    /**
-        Flushes drawing operations
+        This is a convenience function which automatically
+        creates a SbImagePattern.
+
+        The image will be locked until the source is changed.
+        Setting the source to a null image will set the source
+        to the default black color.
     */
-    abstract void flush();
+    final
+    void setSource(SbImage image, vec2 offset=vec2(0)) {
+        this.clearImageSource();
+
+        if (image) {
+            
+            // Set new image source through a pattern.
+            imageSource = SbImagePattern.fromImage(image);
+            this.setSourceImpl(imageSource, offset);
+        } else {
+            this.setSourceImpl(vec4(0, 0, 0, 1));
+        }
+    }
 
     /**
         Adds a clipping rectangle

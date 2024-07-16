@@ -212,6 +212,7 @@ public:
         // Just in case that D thinks it should delete image.
         image.release(lock);
         image = null;
+        lock = null;
     }
 
     /**
@@ -230,6 +231,13 @@ public:
     }
 
     /**
+        Gets the format of the image this pattern is reading from
+    */
+    SbImageFormat getFormat() {
+        return image.getFormat();
+    }
+
+    /**
         Gets the width of the image
     */
     uint getWidth() {
@@ -244,19 +252,25 @@ public:
     }
 
     /**
+        Gets whether the pattern is valid.
+    */
+    bool isValid() {
+        return lock !is null;
+    }
+
+    /**
         Creates a image pattern
     */
-    static shared_ptr!SbImagePattern fromImage(SbImage image) {
+    static SbImagePattern fromImage(SbImage image) {
         switch(cnvBackendGet()) {
             default:
-                shared_ptr!SbImagePattern grad;
-                return grad;
+                return null;
 
             case SbCanvasBackend.blend2D:
-                return shared_ptr!SbImagePattern.fromPtr(nogc_new!SbBLImagePattern(image));
+                return nogc_new!SbBLImagePattern(image);
 
             case SbCanvasBackend.cairo:
-                return shared_ptr!SbImagePattern.fromPtr(nogc_new!SbCairoImagePattern(image));
+                return nogc_new!SbCairoImagePattern(image);
         }
     }
 }

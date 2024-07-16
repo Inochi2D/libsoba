@@ -25,3 +25,11 @@ cairo_format_t toCairoFormat(SbImageFormat fmt) {
         case SbImageFormat.RGBA32:    return cairo_format_t.CAIRO_FORMAT_ARGB32;
     }
 }
+
+void cairoDebug(cairo_surface_t* surface) {
+    debug { 
+        cairo_status_t status = cairo_surface_status(surface);
+        import core.stdc.stdio : printf;
+        printf("%s\n", cairo_status_to_string (status));
+    }
+}

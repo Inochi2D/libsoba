@@ -26,9 +26,6 @@ private:
     SbBlendOperator op;
     BLImage targetImage;
 
-    BLImage srcImage;
-    BLPattern srcPattern;
-
     void applyClipRects() {
         blContextRestoreClipping(&ctx);
 
@@ -60,29 +57,21 @@ private:
 protected:
 
     override
-    bool setImageSource(SbImage source) {
-        bool success = super.setImageSource(source);
-        blImageReset(&srcImage);
-        
-        // Destroy was requested.
-        if (!source)
-            return success;
+    void setSourceImpl(vec4 color) {
+        BLRgba rgba = BLRgba(color.x, color.y, color.z, color.w);
+        blContextSetFillStyleRgba(&ctx, &rgba);
+    }
 
-        // Creation was requested
-        SbImageLock* lock = this.getSourceLock();
-        blImageCreateFromData(
-            &targetImage,
-            lock.width, 
-            lock.height, 
-            source.getFormat().toBLFormat(),
-            lock.data,
-            lock.stride,
-            BLDataAccessFlags.BL_DATA_ACCESS_RW,
-            null,
-            null
-        );
-        
-        return success;
+    override
+    void setSourceImpl(vec3 color) {
+        BLRgba rgba = BLRgba(color.x, color.y, color.z, 1);
+        blContextSetFillStyleRgba(&ctx, &rgba);
+    }
+
+    override
+    void setSourceImpl(SbPattern pattern, vec2 offset) {
+        blContextSetFillStyle(&ctx, pattern.getHandle());
+        blContextSetStrokeStyle(&ctx, pattern.getHandle());
     }
 
 public:
@@ -92,7 +81,6 @@ public:
     */
     ~this() {
         blImageDestroy(&targetImage);
-        blImageDestroy(&srcImage);
         blPathDestroy(&path);
         blContextDestroy(&ctx);
     }
@@ -108,10 +96,6 @@ public:
         blContextInit(&ctx);
         blImageInit(&targetImage);
         blPathInit(&path);
-
-        // Source pattern
-        blImageInit(&srcImage);
-        blPatternInit(&srcPattern);
 
         // Default in cairo is OVER
         this.op = SbBlendOperator.sourceOver;
@@ -145,6 +129,7 @@ public:
             
             // End rendering
             blContextEnd(&ctx);
+            blContextFlush(&ctx, BLContextFlushFlags.BL_CONTEXT_FLUSH_SYNC);
             blImageReset(&targetImage);
         }
 
@@ -152,7 +137,7 @@ public:
     }
 
     override
-    void clear() {
+    void clearAll() {
         if (!hasLock()) return;
         blContextClearAll(&ctx);
     }
@@ -532,38 +517,6 @@ public:
         return math.rect(box.x0, box.y0, box.x1-box.x0, box.y1-box.y0);
     }
 
-    /**
-        Sets the color of the sourde
-    */
-    override
-    void setSource(vec4 color) {
-        BLRgba rgba = BLRgba(color.x, color.y, color.z, color.w);
-        blContextSetFillStyleRgba(&ctx, &rgba);
-    }
-
-    override
-    void setSource(vec3 color) {
-        BLRgba rgba = BLRgba(color.x, color.y, color.z, 1);
-        blContextSetFillStyleRgba(&ctx, &rgba);
-    }
-
-    override
-    void setSource(SbPattern pattern) {
-        blContextSetFillStyle(&ctx, pattern.getHandle());
-        blContextSetStrokeStyle(&ctx, pattern.getHandle());
-    }
-
-    override
-    void setSource(SbImage source, vec2 offset) {
-        if(source) {
-            blContextSetFillStyle(&ctx, &srcPattern);
-            blContextSetStrokeStyle(&ctx, &srcPattern);
-        } else {
-            BLRgba rgba = BLRgba(0, 0, 0, 1);
-            blContextSetFillStyleRgba(&ctx, &rgba);
-        }
-    }
-
     override
     void pushClipRect(recti area) {
         super.pushClipRect(area);
@@ -584,11 +537,6 @@ public:
         blContextRestoreClipping(&ctx);
 
         this.applyMask();
-    }
-
-    override
-    void flush() {
-        blContextFlush(&ctx, BLContextFlushFlags.BL_CONTEXT_FLUSH_SYNC);
     }
 }
 

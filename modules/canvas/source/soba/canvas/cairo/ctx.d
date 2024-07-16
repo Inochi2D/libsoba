@@ -25,7 +25,6 @@ private:
     // Cairo primitives
     cairo_t* cr;
     cairo_surface_t* surface;
-    cairo_surface_t* srcSurface;
     
     // Other primitives
     SbBlendOperator op;
@@ -63,30 +62,28 @@ private:
 protected:
 
     override
-    bool setImageSource(SbImage source) {
-        bool success = super.setImageSource(source);
+    void setSourceImpl(vec4 color) {
+        if (!hasLock()) return;
+        
+        cairo_set_source_rgba(cr, color.x, color.y, color.z, color.w);
+    }
 
-        // Anything to destroy?
-        if (srcSurface) {
-            cairo_surface_destroy(srcSurface);
-            srcSurface = null;
+    override
+    void setSourceImpl(vec3 color) {
+        if (!hasLock()) return;
+
+        cairo_set_source_rgb(cr, color.x, color.y, color.z);
+    }
+
+    override
+    void setSourceImpl(SbPattern pattern, vec2 offset) {
+        if (!hasLock()) return;
+
+        if (pattern) {
+            cairo_set_source(cr, cast(cairo_pattern_t*)pattern.getHandle());
+        } else {
+            cairo_set_source_rgb(cr, 0, 0, 0);
         }
-        
-        // Destroy was requested.
-        if (!source)
-            return success;
-
-        // Creation was requested
-        SbImageLock* lock = this.getSourceLock();
-        this.srcSurface = cairo_image_surface_create_for_data(
-            lock.data,
-            source.getFormat().toCairoFormat,
-            lock.width,
-            lock.height,
-            cast(int)lock.stride
-        );
-        
-        return success;
     }
 
 public:
@@ -95,7 +92,11 @@ public:
         Destructor
     */
     ~this() {
-        cairo_destroy(cr);
+        if(cr) cairo_destroy(cr);
+        if(surface) cairo_surface_destroy(surface);
+
+        this.surface = null;
+        this.cr = null;
     }
 
     /**
@@ -110,17 +111,16 @@ public:
     override
     bool begin(SbImage target) {
         bool begun = super.begin(target);
+
         if (begun) {
             SbImageLock* lock = this.getLock();
-
             this.surface = cairo_image_surface_create_for_data(
                 lock.data,
-                target.getFormat().toCairoFormat,
+                target.getFormat().toCairoFormat(),
                 lock.width,
                 lock.height,
                 cast(int)lock.stride
             );
-
             this.cr = cairo_create(this.surface);
         }
         return begun;
@@ -129,17 +129,24 @@ public:
     override
     bool end() {
         if (hasLock()) {
-            cairo_surface_flush(surface);
+            cairo_surface_finish(surface);
+            cairo_surface_destroy(surface);
 
             cairo_destroy(cr);
-            cairo_surface_destroy(surface);
+
+            this.surface = null;
+            this.cr = null;
         }
 
         return super.end();
     }
+
     override
-    void clear() {
-        cairo_fill(cr);
+    void clearAll() {
+        if (!hasLock()) return;
+
+        this.setSource(vec4(0, 0, 0, 0));
+        cairo_paint(cr);
     }
 
     override
@@ -149,6 +156,8 @@ public:
 
     override
     SbContextCookie save() {
+        if (!hasLock()) return null;
+
         cairo_save(cr);
 
         return null;
@@ -156,11 +165,15 @@ public:
 
     override
     void restore(SbContextCookie) {
+        if (!hasLock()) return;
+
         cairo_restore(cr);
     }
 
     override
     void setFillRule(SbFillRule fill) {
+        if (!hasLock()) return;
+
         final switch(fill) {
             case SbFillRule.evenOdd: cairo_set_fill_rule(cr, cairo_fill_rule_t.CAIRO_FILL_RULE_EVEN_ODD); return;
             case SbFillRule.winding: cairo_set_fill_rule(cr, cairo_fill_rule_t.CAIRO_FILL_RULE_WINDING); return;
@@ -169,6 +182,8 @@ public:
 
     override
     SbFillRule getFillRule() {
+        if (!hasLock()) return SbFillRule.evenOdd;
+
         final switch(cairo_get_fill_rule(cr)) {
             case cairo_fill_rule_t.CAIRO_FILL_RULE_EVEN_ODD: return SbFillRule.evenOdd;
             case cairo_fill_rule_t.CAIRO_FILL_RULE_WINDING: return SbFillRule.winding;
@@ -177,6 +192,8 @@ public:
 
     override
     void setLineCap(SbLineCap cap) {
+        if (!hasLock()) return;
+
         final switch(cap) {
             case SbLineCap.butt: cairo_set_line_cap(cr, cairo_line_cap_t.CAIRO_LINE_CAP_BUTT); return;
             case SbLineCap.square: cairo_set_line_cap(cr, cairo_line_cap_t.CAIRO_LINE_CAP_SQUARE); return;
@@ -186,6 +203,8 @@ public:
 
     override
     SbLineCap getLineCap() {
+        if (!hasLock()) return SbLineCap.butt;
+
         final switch(cairo_get_line_cap(cr)) {
             case cairo_line_cap_t.CAIRO_LINE_CAP_BUTT: return SbLineCap.butt;
             case cairo_line_cap_t.CAIRO_LINE_CAP_SQUARE: return SbLineCap.square;
@@ -195,6 +214,8 @@ public:
 
     override
     void setLineJoin(SbLineJoin join) {
+        if (!hasLock()) return;
+
         final switch(join) {
             case SbLineJoin.miter: cairo_set_line_join(cr, cairo_line_join_t.CAIRO_LINE_JOIN_MITER); return;
             case SbLineJoin.bevel: cairo_set_line_join(cr, cairo_line_join_t.CAIRO_LINE_JOIN_BEVEL); return;
@@ -204,6 +225,8 @@ public:
 
     override
     SbLineJoin getLineJoin() {
+        if (!hasLock()) return SbLineJoin.miter;
+
         final switch(cairo_get_line_join(cr)) {
             case cairo_line_join_t.CAIRO_LINE_JOIN_MITER: return SbLineJoin.miter;
             case cairo_line_join_t.CAIRO_LINE_JOIN_BEVEL: return SbLineJoin.bevel;
@@ -213,6 +236,7 @@ public:
 
     override
     void setBlendOperator(SbBlendOperator op) {
+        if (!hasLock()) return;
 
         this.op = op;
 
@@ -257,31 +281,43 @@ public:
 
     override
     void setLineWidth(float width) {
+        if (!hasLock()) return;
+
         cairo_set_line_width(cr, width);
     }
 
     override
     float getLineWidth(float width) {
+        if (!hasLock()) return 1;
+        
         return cast(float)cairo_get_line_width(cr);
     }
 
     override
     void fill() {
+        if (!hasLock()) return;
+        
         cairo_fill(cr);
     }
 
     override
     void fillPreserve() {
+        if (!hasLock()) return;
+        
         cairo_fill_preserve(cr);
     }
 
     override
     void stroke() {
+        if (!hasLock()) return;
+        
         cairo_stroke(cr);
     }
 
     override
     void strokePreserve() {
+        if (!hasLock()) return;
+        
         cairo_stroke_preserve(cr);
     }
 
@@ -293,6 +329,8 @@ public:
     */
     override
     shared_ptr!SbMask fillMask() {
+        if (!hasLock()) return (shared_ptr!SbMask).init;
+        
         cairo_path_t* path = cairo_copy_path(cr);
         
         if (path.num_data == 0) {
@@ -307,6 +345,7 @@ public:
     
     override
     void setMask(shared_ptr!SbMask mask) {
+        if (!hasLock()) return;
 
         // Clear smart pointer
         if (currentMask.get() !is null) {
@@ -319,12 +358,15 @@ public:
     
     override
     void clearMask() {
+        if (!hasLock()) return;
+        
         nogc_delete(currentMask);
         this.applyMask();
     }
 
     override
     bool isInMask(vec2 point) {
+        if (!hasLock()) return false;
 
         // Convert to screen coordinates
         double dx = point.x, dy = point.y;
@@ -337,6 +379,8 @@ public:
 
     override
     bool isInMask(vec2i point) {
+        if (!hasLock()) return false;
+        
         enum SB_MASK_SEARCH_EPSILON = 0.5;
 
         // Convert to screen coordinates
@@ -356,31 +400,43 @@ public:
 
     override
     bool isMasked() {
+        if (!hasLock()) return false;
+
         return hasMask;
     }
 
     override
     void clearPath() {
+        if (!hasLock()) return;
+        
         cairo_new_path(cr);
     }
 
     override
     void moveTo(vec2 pos) {
+        if (!hasLock()) return;
+        
         cairo_move_to(cr, pos.x, pos.y);
     }
 
     override
     void lineTo(vec2 pos) {
+        if (!hasLock()) return;
+        
         cairo_line_to(cr, pos.x, pos.y);
     }
 
     override
     void curveTo(vec2 pos, vec2 ctrl1, vec2 ctrl2) {
+        if (!hasLock()) return;
+        
         cairo_curve_to(cr, ctrl1.x, ctrl1.y, ctrl2.x, ctrl2.y, pos.x, pos.y);
     }
 
     override
     void arcTo(vec2 point) {
+        if (!hasLock()) return;
+        
         vec2 start = getPathCursorPos();
         
         // flat arc to nowhere
@@ -407,6 +463,8 @@ public:
 
     override
     void rect(math.rect r) {
+        if (!hasLock()) return;
+        
         cairo_rectangle(cr, r.x, r.y, r.width, r.height);
     }
 
@@ -417,6 +475,7 @@ public:
 
     override
     void roundRect(math.rect r, float borderRadiusTL, float borderRadiusTR, float borderRadiusBL, float borderRadiusBR) {
+        if (!hasLock()) return;
         
         cairo_move_to(cr, r.x+borderRadiusTL, r.y);
 
@@ -435,6 +494,8 @@ public:
 
     override
     void squircle(math.rect r, float elasticity) {
+        if (!hasLock()) return;
+        
         cairo_new_path(cr);
 
         elasticity = clamp(elasticity, 0, 1);
@@ -466,31 +527,43 @@ public:
 
     override
     void closePath() {
+        if (!hasLock()) return;
+        
         cairo_close_path(cr);
     }
 
     override
     void translate(vec2 pos) {
+        if (!hasLock()) return;
+        
         cairo_translate(cr, pos.x, pos.y);
     }
 
     override
     void rotate(float radians) {
+        if (!hasLock()) return;
+        
         cairo_rotate(cr, radians);
     }
 
     override
     void scale(vec2 scale) {
+        if (!hasLock()) return;
+        
         cairo_scale(cr, scale.x, scale.y);
     }
 
     override
     void resetTransform() {
+        if (!hasLock()) return;
+        
         cairo_identity_matrix(cr);
     }
 
     override
     vec2 getPathCursorPos() {
+        if (!hasLock()) return vec2.init;
+        
         vec2 pos = vec2(0, 0);
         if (cairo_has_current_point(cr)) {
             double px, py;
@@ -506,45 +579,10 @@ public:
         return math.rect.init; // TODO: implement
     }
 
-    /**
-        Sets the color of the sourde
-    */
-    override
-    void setSource(vec4 color) {
-        this.setImageSource(null);
-        cairo_set_source_rgba(cr, color.x, color.y, color.z, color.w);
-    }
-
-    override
-    void setSource(vec3 color) {
-        this.setImageSource(null);
-        cairo_set_source_rgb(cr, color.x, color.y, color.z);
-    }
-
-    override
-    void setSource(SbPattern pattern) {
-        this.setImageSource(null);
-        cairo_set_source(cr, cast(cairo_pattern_t*)pattern.getHandle());
-    }
-
-    override
-    void setSource(SbImage canvas, vec2 offset) {
-        if (this.setImageSource(canvas) && this.srcSurface) {
-            cairo_set_source_surface(cr, this.srcSurface, offset.x, offset.y);
-        } else {
-
-            // Fallback, set to black.
-            cairo_set_source_rgb(cr, 0, 0, 0);
-        }
-    }
-
-    override
-    void flush() {
-        cairo_surface_flush(cairo_get_target(cr));
-    }
-
     override
     void pushClipRect(recti area) {
+        if (!hasLock()) return;
+        
         super.pushClipRect(area);
 
         auto currClip = getCurrentClip();
@@ -554,12 +592,16 @@ public:
 
     override
     void popClipRect() {
+        if (!hasLock()) return;
+        
         super.popClipRect();
         this.applyClipRects();
     }
 
     override
     void clearClipRects() {
+        if (!hasLock()) return;
+        
         super.clearClipRects();
         cairo_reset_clip(cr);
 

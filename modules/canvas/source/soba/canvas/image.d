@@ -26,6 +26,8 @@ enum SbImageFormat {
 
     /**
         RGB image, aligned to a 4 byte boundary
+    
+        Upper 8 bits are unused.
     */
     RGB32,
 
@@ -75,10 +77,8 @@ private:
         switch(channels) {
             default:    fmt = SbImageFormat.None;   return;
             case 1:     fmt = SbImageFormat.A8;     return;
-            case 3:     fmt = SbImageFormat.RGB32;    return;
-            case 4:
-                fmt = SbImageFormat.RGBA32;
-                return;
+            case 3:     fmt = SbImageFormat.RGB32;  return;
+            case 4:     fmt = SbImageFormat.RGBA32; return;
         }
     }
 
@@ -360,17 +360,22 @@ public:
         SbImageLock* lock = this.acquire();
         if (lock) {
 
-            // Converts textures to appropriate format for writing.
-            vector!ubyte tmp;
-            tmp.resize(width*height*channels);
             if (alignment != channels) {
+                // Converts textures to appropriate format for writing.
+                vector!ubyte tmp;
+                tmp.resize(width*height*channels);
                 conv8 convfunc = cast(conv8) getconv(alignment, channels, 8);
                 convfunc(pixels.toSlice(), tmp.toSlice());
+                write_image(name, width, height, tmp.toSlice(), channels);
+
+                nogc_delete(tmp);
+            } else {
+
+                // No conversion is needed.
+                write_image(name, width, height, pixels.toSlice(), channels);
             }
 
-            write_image(name, width, height, tmp.toSlice(), channels);
 
-            nogc_delete(tmp);
             this.release(lock);
         }
     }
