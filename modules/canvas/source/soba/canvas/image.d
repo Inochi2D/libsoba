@@ -360,14 +360,15 @@ public:
         SbImageLock* lock = this.acquire();
         if (lock) {
 
-            // NOTE: imagefmt takes RGBA data in RGBA order, not BGRA.
-            // This temporary buffer is here to allow conversion.
-            vector!ubyte tmp = vector!ubyte(lock.data[0..lock.dataLength]);
-            if (channels == 4) {
-                conv_rgba2bgra(pixels.toSlice(), tmp.toSlice());
+            // Converts textures to appropriate format for writing.
+            vector!ubyte tmp;
+            tmp.resize(width*height*channels);
+            if (alignment != channels) {
+                conv8 convfunc = cast(conv8) getconv(alignment, channels, 8);
+                convfunc(pixels.toSlice(), tmp.toSlice());
             }
 
-            write_image(name, width, height, tmp.toSlice(), alignment);
+            write_image(name, width, height, tmp.toSlice(), channels);
 
             nogc_delete(tmp);
             this.release(lock);
