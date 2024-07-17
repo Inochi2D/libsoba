@@ -14,6 +14,32 @@ import numem.all;
 alias SbGlyphId = uint;
 
 /**
+    Text shaping direction
+*/
+enum SbTextDirection : uint {
+
+    /**
+        Left-to-right
+    */
+    ltr = 4,
+    
+    /**
+        Right-to-left
+    */
+    rtl,
+    
+    /**
+        Top-to-bottom
+    */
+    ttb,
+    
+    /**
+        Bottom-to-top
+    */
+    btt
+}
+
+/**
     A glyph
 */
 struct SbGlyph {
@@ -64,16 +90,63 @@ public:
     }
 
     /**
-        Shapes the text using the specified font
+        Guess segment properties
     */
-    final
-    void shape(SbFont font) {
+    void guessSegmentProperties() {
         
         // We're not sure what the properties of the segment is
         // For now, we'll let harfbuzz guess.
         hb_buffer_guess_segment_properties(buf);
+    }
 
-        // TODO: allow specifying properties.
+    /**
+        Gets the text direction
+    */
+    SbTextDirection getDirection() {
+        return cast(SbTextDirection)hb_buffer_get_direction(buf);
+    }
+
+    /**
+        Sets the text direction
+    */
+    void setDirection(SbTextDirection textDirection) {
+        hb_buffer_set_direction(buf, cast(hb_direction_t)textDirection);
+    }
+
+    /**
+        Sets the text direction
+    */
+    void setLanguage(string code) {
+        hb_buffer_set_language(buf, hb_language_from_string(code.ptr, cast(int)code.length));
+    }
+
+    /**
+        Sets the text direction
+    */
+    nstring getLanguage() {
+        const(char)* str = hb_language_to_string(hb_buffer_get_language(buf));
+        return nstring(str);
+    }
+
+    /**
+        Gets the script used in the buffer
+    */
+    uint getScript() {
+        return hb_buffer_get_script(buf);
+    }
+
+    /**
+        Gets the script used in the buffer
+    */
+    void setScript(uint script) {
+        hb_buffer_set_script(buf, cast(hb_script_t)script);
+    }
+
+    /**
+        Shapes the text using the specified font
+    */
+    final
+    void shape(SbFont font) {
         hb_shape(font.getHandle(), buf, null, 0);
 
         // Build SbGlyph buffer up
@@ -81,14 +154,17 @@ public:
         hb_glyph_info_t *glyph_info     = hb_buffer_get_glyph_infos(buf, &count);
         hb_glyph_position_t *glyph_pos  = hb_buffer_get_glyph_positions(buf, &count);
         
+        float tracking = font.getTracking();
+        float baselineOffset = font.getBaseline();
+
         shaped.resize(count);
         foreach(i; 0..count) {
             SbGlyph glyph;
             glyph.glyphId = glyph_info[i].codepoint;
-            glyph.xAdvance = glyph_pos[i].x_advance;
+            glyph.xAdvance = cast(int)(glyph_pos[i].x_advance*tracking);
             glyph.yAdvance = glyph_pos[i].y_advance;
             glyph.xOffset = glyph_pos[i].x_offset;
-            glyph.yOffset = glyph_pos[i].y_offset;
+            glyph.yOffset = cast(int)(glyph_pos[i].y_offset+baselineOffset);
 
             shaped[i] = glyph;
         }

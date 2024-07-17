@@ -77,16 +77,6 @@ protected:
         blContextSetStrokeStyle(&ctx, pattern.getHandle());
     }
 
-    override
-    void beginTextShape(SbFont font) {
-        
-    }
-
-    override
-    void endTextShape() {
-
-    }
-
 public:
 
     /**

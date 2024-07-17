@@ -87,15 +87,7 @@ protected:
             cairo_set_source_rgb(cr, 0, 0, 0);
         }
     }
-
-    override
-    void beginTextShape(SbFont font) {
-    }
-
-    override
-    void endTextShape() {
-    }
-
+    
 public:
 
     /**

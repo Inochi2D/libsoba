@@ -14,6 +14,25 @@ import inmath;
 import soba.canvas;
 
 /**
+    Font extents
+*/
+struct SbFontExtents {
+    float ascender;
+    float descender;
+    float lineGap;
+}
+
+/**
+    Glyph extents
+*/
+struct SbGlyphExtents {
+    float xBearing;
+    float yBearing;
+    float width;
+    float height;
+}
+
+/**
     A font face, usable for rendering text.
 */
 class SbFont {
@@ -25,6 +44,11 @@ private:
     int size;
     bool doGrading;
     float scaleFactor = 64.0;
+
+    float tracking = 1;
+    float baseline = 0;
+
+    bool underline = false;
 
 protected:
     final
@@ -110,6 +134,51 @@ public:
     }
 
     /**
+        Gets the font tracking
+    */
+    final
+    float getTracking() nothrow {
+        return tracking;
+    }
+
+    /**
+        Gets the font tracking
+    */
+    void setTracking(float tracking) nothrow {
+        this.tracking = tracking;
+    }
+
+    /**
+        Gets the font baseline
+    */
+    final
+    float getBaseline() nothrow {
+        return baseline;
+    }
+
+    /**
+        Gets the font baseline
+    */
+    void setBaseline(float baseline) nothrow {
+        this.baseline = baseline;
+    }
+
+    /**
+        Gets the font underline
+    */
+    final
+    bool getUnderline() nothrow {
+        return underline;
+    }
+
+    /**
+        Gets the font underline
+    */
+    void setUnderline(bool underline) nothrow {
+        this.underline = underline;
+    }
+
+    /**
         Gets the font boldness
     */
     final
@@ -145,6 +214,33 @@ public:
         // Changing grading will automatically redo the boldness.
         doGrading = grading;
         this.setBoldness(this.getBoldness());
+    }
+
+    final
+    SbFontExtents getVerticalExtents() {
+        hb_font_extents_t ext;
+        hb_font_get_v_extents(font, &ext);
+        return SbFontExtents(ext.ascender, ext.descender, ext.line_gap);
+    }
+
+    final
+    SbFontExtents getHorizontalExtents() {
+        hb_font_extents_t ext;
+        hb_font_get_h_extents(font, &ext);
+        return SbFontExtents(ext.ascender, ext.descender, ext.line_gap);
+    }
+
+    final
+    SbGlyphExtents getGlyphExtents(uint codepoint) {
+        hb_glyph_extents_t extents;
+        hb_font_get_glyph_extents(font, codepoint, &extents);
+
+        return SbGlyphExtents(
+            extents.x_bearing,
+            extents.y_bearing,
+            extents.width,
+            extents.height,
+        );
     }
 }
 

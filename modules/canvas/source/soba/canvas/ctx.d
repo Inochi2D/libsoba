@@ -130,9 +130,6 @@ private:
                 )
             );
 
-            
-            debug { import core.stdc.stdio : printf; printf("%f %f\n", position.x, position.y); }
-
             // Advance
             position.x += xAdvance;
             position.y += yAdvance;
@@ -185,10 +182,6 @@ protected:
         Sets the source pattern for rendering
     */
     abstract void setSourceImpl(SbPattern pattern, vec2 offset=vec2(0));
-
-    abstract void beginTextShape(SbFont font);
-
-    abstract void endTextShape();
 
 public:
 
@@ -344,6 +337,7 @@ public:
         if (!hasLock()) return;
 
         buffer.addText(text);
+        buffer.guessSegmentProperties();
         buffer.shape(font);
 
         this.fillText(font, buffer.getGlyphs(), position);
@@ -358,6 +352,7 @@ public:
         if (!hasLock()) return;
 
         buffer.addText(text);
+        buffer.guessSegmentProperties();
         buffer.shape(font);
 
         this.strokeText(font, buffer.getGlyphs(), position);
@@ -372,6 +367,7 @@ public:
         if (!hasLock()) return;
 
         buffer.addText(text);
+        buffer.guessSegmentProperties();
         buffer.shape(font);
 
         this.pathText(font, buffer.getGlyphs(), position);
