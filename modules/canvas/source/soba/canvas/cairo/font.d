@@ -45,7 +45,7 @@ public:
     }
 }
 
-void cnvInitHarfbuzzFontRendering() {
+void cnvInitCairoFontRendering() {
     if (!sbCairoDrawFuncs) {
         sbCairoDrawFuncs = hb_draw_funcs_create();
         hb_draw_funcs_set_move_to_func(sbCairoDrawFuncs, &sbCairoMoveTo, null, null);

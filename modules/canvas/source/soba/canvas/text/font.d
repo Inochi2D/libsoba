@@ -27,6 +27,13 @@ private:
 
     int size;
     bool doGrading;
+    float scaleFactor = 64.0;
+
+protected:
+    final
+    void setScaleFactor(float factor) {
+        scaleFactor = factor;
+    }
 
 public:
     ~this() {
@@ -39,7 +46,7 @@ public:
         this.size = size;
 
         font = hb_font_create(face.getHandle());
-        hb_font_set_scale(font, cast(int)size*64, cast(int)size*64);
+        hb_font_set_scale(font, cast(int)(size*scaleFactor), cast(int)(size*scaleFactor));
     }
 
     /**
@@ -67,7 +74,14 @@ public:
     */
     void setSize(int size) {
         this.size = size;
-        hb_font_set_scale(font, cast(int)size*64, cast(int)size*64);
+        hb_font_set_scale(font, cast(int)(size*scaleFactor), cast(int)(size*scaleFactor));
+    }
+
+    /**
+        Gets the scaling factor to be used.
+    */
+    float getScaleFactor() {
+        return scaleFactor;
     }
 
     /**
@@ -85,7 +99,7 @@ public:
         Gets the font scale
     */
     void setScale(vec2i scale) nothrow {
-        hb_font_set_scale(font, scale.x*64, scale.y*64);
+        hb_font_set_scale(font, cast(int)(scale.x*scaleFactor), cast(int)(scale.y*scaleFactor));
     }
 
     /**
