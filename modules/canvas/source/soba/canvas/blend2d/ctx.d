@@ -301,6 +301,42 @@ public:
     }
 
     /**
+        Draws the specified text
+    */
+    override
+    void fillText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        BLPoint p = position;
+
+        BLGlyphRun run;
+        run.placementType = BLGlyphPlacementType.BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET;
+        run.size = glyphs.length;
+        run.glyphData = cast(void*)glyphs.ptr;
+        run.placementData = (cast(void*)glyphs.ptr)+SbGlyph.xOffset.offsetof;
+        run.glyphAdvance = SbGlyph.sizeof;
+        run.placementAdvance = SbGlyph.sizeof;
+
+        blContextFillGlyphRunD(&ctx, &p, cast(BLFont*)font.getDrawHandle(), &run);
+    }
+
+    /**
+        Draws the specified text
+    */
+    override
+    void strokeText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        BLPoint p = position;
+
+        BLGlyphRun run;
+        run.placementType = BLGlyphPlacementType.BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET;
+        run.size = glyphs.length;
+        run.glyphData = cast(void*)glyphs.ptr;
+        run.placementData = (cast(void*)glyphs.ptr)+SbGlyph.xOffset.offsetof;
+        run.glyphAdvance = SbGlyph.sizeof;
+        run.placementAdvance = SbGlyph.sizeof;
+
+        blContextStrokeGlyphRunD(&ctx, &p, cast(BLFont*)font.getDrawHandle(), &run);
+    }
+
+    /**
         Creates a mask for the current &path.
 
         Use setMask to use it.
@@ -476,42 +512,6 @@ public:
     override
     void closePath() {
         blPathClose(&path);
-    }
-
-    /**
-        Draws the specified text
-    */
-    override
-    void fillText(SbFont font, SbGlyph[] glyphs, vec2 position) {
-        BLPoint p = position;
-
-        BLGlyphRun run;
-        run.placementType = BLGlyphPlacementType.BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET;
-        run.size = glyphs.length;
-        run.glyphData = cast(void*)glyphs.ptr;
-        run.placementData = (cast(void*)glyphs.ptr)+SbGlyph.xOffset.offsetof;
-        run.glyphAdvance = SbGlyph.sizeof;
-        run.placementAdvance = SbGlyph.sizeof;
-
-        blContextFillGlyphRunD(&ctx, &p, cast(BLFont*)font.getDrawHandle(), &run);
-    }
-
-    /**
-        Draws the specified text
-    */
-    override
-    void strokeText(SbFont font, SbGlyph[] glyphs, vec2 position) {
-        BLPoint p = position;
-
-        BLGlyphRun run;
-        run.placementType = BLGlyphPlacementType.BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET;
-        run.size = glyphs.length;
-        run.glyphData = cast(void*)glyphs.ptr;
-        run.placementData = (cast(void*)glyphs.ptr)+SbGlyph.xOffset.offsetof;
-        run.glyphAdvance = SbGlyph.sizeof;
-        run.placementAdvance = SbGlyph.sizeof;
-
-        blContextStrokeGlyphRunD(&ctx, &p, cast(BLFont*)font.getDrawHandle(), &run);
     }
 
     override

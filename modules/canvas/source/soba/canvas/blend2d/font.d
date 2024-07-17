@@ -27,7 +27,7 @@ public:
     /**
         Constructor
     */
-    this(SbFontFace pface, float size) {
+    this(SbFontFace pface, int size) {
         super(pface, size);
 
         // Get font data from harfbuzz
@@ -48,7 +48,7 @@ public:
         Sets the size of the font
     */
     override
-    void setSize(float size) {
+    void setSize(int size) {
         super.setSize(size);
         blFontSetSize(&font, size);
     }

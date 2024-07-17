@@ -60,6 +60,34 @@ private:
         return cast(bool)cairo_in_clip(cr, point.x, point.y);
     }
 
+    void createTextPath(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        cairo_set_font_face (cr, cast(cairo_font_face_t*)font.getDrawHandle());
+        cairo_glyph_t* glyphBuffer = cairo_glyph_allocate (cast(int)glyphs.length);
+
+        float fontSize = font.getSize();
+        cairo_set_font_size (cr, fontSize);
+
+        foreach(i; 0..glyphs.length) {
+            double xOffset  = cast(double)glyphs[i].xOffset / 64.0;
+            double yOffset  = cast(double)glyphs[i].yOffset / 64.0;
+            double xAdvance = cast(double)(glyphs[i].xAdvance / 64.0);
+            double yAdvance = cast(double)(glyphs[i].yAdvance / 64.0);
+
+            glyphBuffer[i] = cairo_glyph_t(
+                glyphs[i].glyphId,
+                position.x+xOffset,
+                position.y+yOffset,
+            );
+
+            // Advance
+            position.x += xAdvance;
+            position.y += yAdvance;
+        }
+
+        cairo_glyph_path (cr, glyphBuffer, cast(int)glyphs.length);
+        cairo_glyph_free (glyphBuffer);
+    }
+
 protected:
 
     override
@@ -327,7 +355,10 @@ public:
     */
     override
     void fillText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        if (!hasLock()) return;
 
+        this.createTextPath(font, glyphs, position);
+        cairo_fill(cr);
     }
 
     /**
@@ -335,7 +366,10 @@ public:
     */
     override
     void strokeText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        if (!hasLock()) return;
 
+        this.createTextPath(font, glyphs, position);
+        cairo_stroke(cr);
     }
 
     /**

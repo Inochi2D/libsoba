@@ -14,6 +14,8 @@ import cairo;
 import blend2d;
 import harfbuzz;
 
+import soba.canvas.cairo.font;
+
 public import soba.canvas.ctx;
 public import soba.canvas.pattern;
 public import soba.canvas.effects;
@@ -95,5 +97,11 @@ bool cnvInitCairo() {
 
 bool cnvInitHarfbuzz() {
     HarfBuzzSupport hbsupport = loadHarfBuzz();
-    return hbsupport == HarfBuzzSupport.harfbuzz;
+    bool success = hbsupport == HarfBuzzSupport.harfbuzz;
+
+    if (success) {
+        cnvInitHarfbuzzFontRendering();
+    }
+
+    return success;
 }
