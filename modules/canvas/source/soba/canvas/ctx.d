@@ -11,6 +11,7 @@
 module soba.canvas.ctx;
 import soba.canvas.image;
 import soba.canvas.pattern;
+import soba.canvas.text;
 import soba.canvas;
 import inmath.linalg;
 import numem.all;
@@ -112,6 +113,32 @@ private:
         return false;
     }
 
+    void createTextPath(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        foreach(i; 0..glyphs.length) {
+            double xOffset  = cast(double)glyphs[i].xOffset;
+            double yOffset  = cast(double)glyphs[i].yOffset;
+            double xAdvance = cast(double)(glyphs[i].xAdvance);
+            double yAdvance = cast(double)(glyphs[i].yAdvance);
+
+            cnvPathAppendGlyph(
+                font,
+                this,
+                glyphs[i].glyphId,
+                vec2(
+                    position.x+xOffset,
+                    position.y+yOffset
+                )
+            );
+
+            
+            debug { import core.stdc.stdio : printf; printf("%f %f\n", position.x, position.y); }
+
+            // Advance
+            position.x += xAdvance;
+            position.y += yAdvance;
+        }
+    }
+
 protected:
 
     shared_ptr!SbMask currentMask;
@@ -158,6 +185,10 @@ protected:
         Sets the source pattern for rendering
     */
     abstract void setSourceImpl(SbPattern pattern, vec2 offset=vec2(0));
+
+    abstract void beginTextShape(SbFont font);
+
+    abstract void endTextShape();
 
 public:
 
@@ -308,12 +339,74 @@ public:
     /**
         Draws the specified text
     */
-    abstract void fillText(SbFont font, SbGlyph[] glyphs, vec2 position);
+    final
+    void fillText(SbFont font, nstring text, vec2 position) {
+        if (!hasLock()) return;
+
+        buffer.addText(text);
+        buffer.shape(font);
+
+        this.fillText(font, buffer.getGlyphs(), position);
+        buffer.reset();
+    }
 
     /**
         Draws the specified text
     */
-    abstract void strokeText(SbFont font, SbGlyph[] glyphs, vec2 position);
+    final
+    void strokeText(SbFont font, nstring text, vec2 position) {
+        if (!hasLock()) return;
+
+        buffer.addText(text);
+        buffer.shape(font);
+
+        this.strokeText(font, buffer.getGlyphs(), position);
+        buffer.reset();
+    }
+
+    /**
+        Draws the specified text
+    */
+    final
+    void pathText(SbFont font, nstring text, vec2 position) {
+        if (!hasLock()) return;
+
+        buffer.addText(text);
+        buffer.shape(font);
+
+        this.pathText(font, buffer.getGlyphs(), position);
+        buffer.reset();
+    }
+
+    /**
+        Draws the specified text
+    */
+    final
+    void fillText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        if (!hasLock()) return;
+
+        this.createTextPath(font, glyphs, position);
+        this.fill();
+    }
+
+    /**
+        Draws the specified text
+    */
+    final
+    void strokeText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        if (!hasLock()) return;
+        
+        this.createTextPath(font, glyphs, position);
+        this.stroke();
+    }
+
+    /**
+        Draws the specified text
+    */
+    final
+    void pathText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        this.createTextPath(font, glyphs, position);
+    }
 
     /**
         Creates a mask for the current path.
@@ -355,6 +448,38 @@ public:
     /**
         Moves the path cursor to the specified point
     */
+    final
+    void moveTo(float x, float y) {
+        this.moveTo(vec2(x, y));
+    }
+
+    /**
+        Draws a line from the current cursor position to the specified point
+    */
+    final
+    void lineTo(float x, float y) {
+        this.lineTo(vec2(x, y));
+    }
+
+    /**
+        Draws a line from the current cursor position to the specified point
+    */
+    final
+    void quadTo(float ctrlX, float ctrlY, float x, float y) {
+        this.quadTo(vec2(ctrlX, ctrlY), vec2(x, y));
+    }
+
+    /**
+        Moves the path cursor to the specified point
+    */
+    final
+    void cubicTo(float ctrl1X, float ctrl1Y, float ctrl2X, float ctrl2Y, float x, float y) {
+        this.cubicTo(vec2(ctrl1X, ctrl1Y), vec2(ctrl2X, ctrl2Y), vec2(x, y));
+    }
+
+    /**
+        Moves the path cursor to the specified point
+    */
     abstract void moveTo(vec2 pos);
 
     /**
@@ -366,7 +491,13 @@ public:
         Draws a cubic bézier spline curve from the current cursor position to the specified point
         using ctrl1 and ctrl2 as control points
     */
-    abstract void curveTo(vec2 pos, vec2 ctrl1, vec2 ctrl2);
+    abstract void quadTo(vec2 ctrl, vec2 pos);
+
+    /**
+        Draws a cubic bézier spline curve from the current cursor position to the specified point
+        using ctrl1 and ctrl2 as control points
+    */
+    abstract void cubicTo(vec2 ctrl1, vec2 ctrl2, vec2 pos);
 
     /**
         Creates an arc from the cursor to the specified point
@@ -427,30 +558,6 @@ public:
         Gets the extents of the current path
     */
     abstract inmath.linalg.rect getPathExtents();
-
-    /**
-        Draws the specified text
-    */
-    final
-    void fillText(SbFont font, nstring text, vec2 position) {
-        buffer.addText(text);
-        buffer.shape(font);
-
-        this.fillText(font, buffer.getGlyphs(), position);
-        buffer.reset();
-    }
-
-    /**
-        Draws the specified text
-    */
-    final
-    void strokeText(SbFont font, nstring text, vec2 position) {
-        buffer.addText(text);
-        buffer.shape(font);
-
-        this.strokeText(font, buffer.getGlyphs(), position);
-        buffer.reset();
-    }
 
     /**
         Sets the source color for rendering

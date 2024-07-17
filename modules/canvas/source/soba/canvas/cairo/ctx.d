@@ -26,6 +26,7 @@ private:
     // Cairo primitives
     cairo_t* cr;
     cairo_surface_t* surface;
+    cairo_matrix_t matrix;
     
     // Other primitives
     SbBlendOperator op;
@@ -60,34 +61,6 @@ private:
         return cast(bool)cairo_in_clip(cr, point.x, point.y);
     }
 
-    void createTextPath(SbFont font, SbGlyph[] glyphs, vec2 position) {
-        cairo_set_font_face (cr, cast(cairo_font_face_t*)font.getDrawHandle());
-        cairo_glyph_t* glyphBuffer = cairo_glyph_allocate (cast(int)glyphs.length);
-
-        float fontSize = font.getSize();
-        cairo_set_font_size (cr, fontSize);
-
-        foreach(i; 0..glyphs.length) {
-            double xOffset  = cast(double)glyphs[i].xOffset / 64.0;
-            double yOffset  = cast(double)glyphs[i].yOffset / 64.0;
-            double xAdvance = cast(double)(glyphs[i].xAdvance / 64.0);
-            double yAdvance = cast(double)(glyphs[i].yAdvance / 64.0);
-
-            glyphBuffer[i] = cairo_glyph_t(
-                glyphs[i].glyphId,
-                position.x+xOffset,
-                position.y+yOffset,
-            );
-
-            // Advance
-            position.x += xAdvance;
-            position.y += yAdvance;
-        }
-
-        cairo_glyph_path (cr, glyphBuffer, cast(int)glyphs.length);
-        cairo_glyph_free (glyphBuffer);
-    }
-
 protected:
 
     override
@@ -113,6 +86,14 @@ protected:
         } else {
             cairo_set_source_rgb(cr, 0, 0, 0);
         }
+    }
+
+    override
+    void beginTextShape(SbFont font) {
+    }
+
+    override
+    void endTextShape() {
     }
 
 public:
@@ -351,28 +332,6 @@ public:
     }
 
     /**
-        Draws the specified text
-    */
-    override
-    void fillText(SbFont font, SbGlyph[] glyphs, vec2 position) {
-        if (!hasLock()) return;
-
-        this.createTextPath(font, glyphs, position);
-        cairo_fill(cr);
-    }
-
-    /**
-        Draws the specified text
-    */
-    override
-    void strokeText(SbFont font, SbGlyph[] glyphs, vec2 position) {
-        if (!hasLock()) return;
-
-        this.createTextPath(font, glyphs, position);
-        cairo_stroke(cr);
-    }
-
-    /**
         Creates a mask for the current path.
 
         Use setMask to use it.
@@ -478,7 +437,23 @@ public:
     }
 
     override
-    void curveTo(vec2 pos, vec2 ctrl1, vec2 ctrl2) {
+    void quadTo(vec2 ctrl, vec2 pos) {
+        if (!hasLock()) return;
+        
+        vec2 start = getPathCursorPos();
+        cairo_curve_to(
+            cr,
+            2.0 / 3.0 * ctrl.x + 1.0 / 3.0 * start.x,
+            2.0 / 3.0 * ctrl.y + 1.0 / 3.0 * start.y,
+            2.0 / 3.0 * ctrl.x + 1.0 / 3.0 * pos.x,
+            2.0 / 3.0 * ctrl.y + 1.0 / 3.0 * pos.y,
+            pos.x,
+            pos.y
+        );
+    }
+
+    override
+    void cubicTo(vec2 ctrl1, vec2 ctrl2, vec2 pos) {
         if (!hasLock()) return;
         
         cairo_curve_to(cr, ctrl1.x, ctrl1.y, ctrl2.x, ctrl2.y, pos.x, pos.y);

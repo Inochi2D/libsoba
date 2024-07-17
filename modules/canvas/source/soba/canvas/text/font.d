@@ -12,13 +12,10 @@ import numem.all;
 import inmath;
 
 import soba.canvas;
-import soba.canvas.blend2d.font;
-import soba.canvas.cairo.font;
 
 /**
     A font face, usable for rendering text.
 */
-abstract
 class SbFont {
 @nogc:
 private:
@@ -46,7 +43,7 @@ public:
         this.size = size;
 
         font = hb_font_create(face.getHandle());
-        hb_font_set_scale(font, cast(int)(size*scaleFactor), cast(int)(size*scaleFactor));
+        hb_font_set_scale(font, cast(int)(size), cast(int)(size));
     }
 
     /**
@@ -55,11 +52,6 @@ public:
     hb_font_t* getHandle() nothrow {
         return font;
     }
-
-    /**
-        Gets the underlying handle for rendering the font.
-    */
-    abstract void* getDrawHandle();
 
     /**
         Gets the size of the font
@@ -74,7 +66,7 @@ public:
     */
     void setSize(int size) {
         this.size = size;
-        hb_font_set_scale(font, cast(int)(size*scaleFactor), cast(int)(size*scaleFactor));
+        hb_font_set_scale(font, cast(int)(size), cast(int)(size));
     }
 
     /**
@@ -154,18 +146,81 @@ public:
         doGrading = grading;
         this.setBoldness(this.getBoldness());
     }
+}
 
-    /**
-        Static helper function which creates a context using the same backend as the canvas
-    */
-    static SbFont create(SbFontFace face, int size) {
-        switch(cnvBackendGet()) {
-            case SbCanvasBackend.blend2D:
-                return nogc_new!SbBLFont(face, size); 
-            case SbCanvasBackend.cairo:
-                return nogc_new!SbCairoFont(face, size);
-            default:
-                return null;
-        }
+
+
+
+// Font rendering subsystem
+@nogc:
+
+void cnvInitFontRendering() {
+    if (!sbBLDrawFuncs) {
+        import numem.mem.utils : assumeNothrowNoGC;
+        sbBLDrawFuncs = hb_draw_funcs_create();
+        hb_draw_funcs_set_move_to_func(sbBLDrawFuncs, assumeNothrowNoGC(&sbMoveTo), null, null);
+        hb_draw_funcs_set_line_to_func(sbBLDrawFuncs, assumeNothrowNoGC(&sbLineTo), null, null);
+        hb_draw_funcs_set_cubic_to_func(sbBLDrawFuncs, assumeNothrowNoGC(&sbCubicTo), null, null);
+        hb_draw_funcs_set_quadratic_to_func(sbBLDrawFuncs, assumeNothrowNoGC(&sbQuadTo), null, null);
+        hb_draw_funcs_set_close_path_func(sbBLDrawFuncs, assumeNothrowNoGC(&sbClosePath), null, null);
+        hb_draw_funcs_make_immutable(sbBLDrawFuncs);
     }
+}
+
+void cnvPathAppendGlyph(SbFont font, SbContext context, uint glyph, vec2 position) {
+    __glyph_intermediate i;
+    i.context = context;
+    i.position = position;
+
+    hb_font_draw_glyph(font.getHandle(), cast(uint)glyph, sbBLDrawFuncs, &i);
+}
+
+private:
+
+struct __glyph_intermediate {
+    SbContext context;
+    vec2 position;
+}
+
+// Harfbuzz-blend2d interface
+extern(C):
+
+// drawfunc store
+__gshared hb_draw_funcs_t* sbBLDrawFuncs;
+
+void sbMoveTo(hb_draw_funcs_t* drawFuncs, void* drawData, hb_draw_state_t* drawState, float x, float y, void* userData) {
+
+    __glyph_intermediate* i = cast(__glyph_intermediate*) drawData;
+    i.context.moveTo(i.position.x+cast(double) x, i.position.y-cast(double) y);
+}
+
+void sbLineTo(hb_draw_funcs_t* drawFuncs, void* drawData, hb_draw_state_t* drawState, float x, float y, void* userData) {
+
+    __glyph_intermediate* i = cast(__glyph_intermediate*) drawData;
+    i.context.lineTo(i.position.x+cast(double) x, i.position.y-cast(double) y);
+}
+
+void sbCubicTo(hb_draw_funcs_t* drawFuncs, void* drawData, hb_draw_state_t* drawState, float c1x, float c1y, float c2x, float c2y, float x, float y, void* userData) {
+
+    __glyph_intermediate* i = cast(__glyph_intermediate*) drawData;
+    i.context.cubicTo(
+        i.position.x+cast(double) c1x,   i.position.y-cast(double) c1y,
+        i.position.x+cast(double) c2x,   i.position.y-cast(double) c2y,
+        i.position.x+cast(double) x,     i.position.y-cast(double) y
+    );
+}
+
+void sbQuadTo(hb_draw_funcs_t* drawFuncs, void* drawData, hb_draw_state_t* drawState, float c1x, float c1y, float c2x, float c2y, void* userData) {
+
+    __glyph_intermediate* i = cast(__glyph_intermediate*) drawData;
+    i.context.quadTo(
+        i.position.x+cast(double) c1x,   i.position.y-cast(double) c1y,
+        i.position.x+cast(double) c2x,   i.position.y-cast(double) c2y
+    );
+}
+
+void sbClosePath(hb_draw_funcs_t* drawFuncs, void* drawData, hb_draw_state_t* drawState, void* userData) {
+
+    __glyph_intermediate* i = cast(__glyph_intermediate*) drawData;
+    i.context.closePath();
 }

@@ -14,9 +14,6 @@ import cairo;
 import blend2d;
 import harfbuzz;
 
-import soba.canvas.cairo.font;
-import soba.canvas.blend2d.font;
-
 public import soba.canvas.ctx;
 public import soba.canvas.pattern;
 public import soba.canvas.effects;
@@ -36,7 +33,7 @@ enum SbCanvasBackend {
     blend2D
 }
 
-nothrow @nogc:
+@nogc:
 extern(C):
 
 /**
@@ -80,7 +77,6 @@ bool cnvInitBlend2D() {
     Blend2DSupport bsupport = loadBlend2D();
     if (bsupport == Blend2DSupport.blend2d) {
         cnvBackend = SbCanvasBackend.blend2D;
-        cnvInitBLFontRendering();
         return true;
     }
     return false;
@@ -92,7 +88,6 @@ bool cnvInitCairo() {
     CairoSupport csupport = loadCairo();
     if (csupport == CairoSupport.cairo) {
         cnvBackend = SbCanvasBackend.cairo;
-        cnvInitCairoFontRendering();
         return true;
     }
     return false;
@@ -100,5 +95,8 @@ bool cnvInitCairo() {
 
 bool cnvInitHarfbuzz() {
     HarfBuzzSupport hbsupport = loadHarfBuzz();
+    
+    cnvInitFontRendering();
+
     return hbsupport == HarfBuzzSupport.harfbuzz;
 }

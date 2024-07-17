@@ -18,7 +18,6 @@ import soba.canvas.blend2d.mask;
 import soba.canvas.blend2d;
 import numem.all;
 import soba.canvas.text;
-import soba.canvas.blend2d.font;
 
 class SbBLContext : SbContext {
 @nogc:
@@ -56,30 +55,6 @@ private:
         return cast(bool)r.intersects(point);
     }
 
-    void createTextPath(SbFont font, SbGlyph[] glyphs, vec2 position) {
-        float fontSize = font.getSize();
-        foreach(i; 0..glyphs.length) {
-            double xOffset  = cast(double)glyphs[i].xOffset;
-            double yOffset  = cast(double)glyphs[i].yOffset;
-            double xAdvance = cast(double)(glyphs[i].xAdvance);
-            double yAdvance = cast(double)(glyphs[i].yAdvance);
-
-            cnvPathAppendGlyph(
-                font,
-                &path,
-                glyphs[i].glyphId,
-                vec2(
-                    position.x+xOffset,
-                    position.y+yOffset
-                )
-            );
-
-            // Advance
-            position.x += xAdvance;
-            position.y += yAdvance;
-        }
-    }
-
 protected:
 
     override
@@ -100,6 +75,16 @@ protected:
     void setSourceImpl(SbPattern pattern, vec2 offset) {
         blContextSetFillStyle(&ctx, pattern.getHandle());
         blContextSetStrokeStyle(&ctx, pattern.getHandle());
+    }
+
+    override
+    void beginTextShape(SbFont font) {
+        
+    }
+
+    override
+    void endTextShape() {
+
     }
 
 public:
@@ -326,49 +311,6 @@ public:
     }
 
     /**
-        Draws the specified text
-    */
-    override
-    void fillText(SbFont font, SbGlyph[] glyphs, vec2 position) {
-        // BLPoint p = position;
-
-        // BLGlyphRun run;
-        // run.placementType = BLGlyphPlacementType.BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET;
-        // run.size = glyphs.length;
-        // run.glyphData = cast(void*)glyphs.ptr;
-        // run.placementData = (cast(void*)glyphs.ptr)+SbGlyph.xOffset.offsetof;
-        // run.glyphAdvance = SbGlyph.sizeof;
-        // run.placementAdvance = SbGlyph.sizeof;
-
-        // blContextFillGlyphRunD(&ctx, &p, cast(BLFont*)font.getDrawHandle(), &run);
-    
-        this.createTextPath(font, glyphs, position);
-        this.fill();
-    }
-
-    /**
-        Draws the specified text
-    */
-    override
-    void strokeText(SbFont font, SbGlyph[] glyphs, vec2 position) {
-        // BLPoint p = position;
-
-        // BLGlyphRun run;
-        // run.placementType = BLGlyphPlacementType.BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET;
-        // run.size = glyphs.length;
-        // run.glyphData = cast(void*)glyphs.ptr;
-        // run.placementData = (cast(void*)glyphs.ptr)+SbGlyph.xOffset.offsetof;
-        // run.glyphAdvance = SbGlyph.sizeof;
-        // run.placementAdvance = SbGlyph.sizeof;
-
-        // blContextStrokeGlyphRunD(&ctx, &p, cast(BLFont*)font.getDrawHandle(), &run);
-
-        
-        this.createTextPath(font, glyphs, position);
-        this.stroke();
-    }
-
-    /**
         Creates a mask for the current &path.
 
         Use setMask to use it.
@@ -462,7 +404,12 @@ public:
     }
 
     override
-    void curveTo(vec2 pos, vec2 ctrl1, vec2 ctrl2) {
+    void quadTo(vec2 ctrl, vec2 pos) {
+        blPathQuadTo(&path, ctrl.x, ctrl.y, pos.x, pos.y);
+    }
+
+    override
+    void cubicTo(vec2 ctrl1, vec2 ctrl2, vec2 pos) {
         blPathCubicTo(&path, ctrl1.x, ctrl1.y, ctrl2.x, ctrl2.y, pos.x, pos.y);
     }
 
