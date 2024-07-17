@@ -175,15 +175,12 @@ void cnvPathAppendGlyph(SbFont font, SbContext context, uint glyph, vec2 positio
     hb_font_draw_glyph(font.getHandle(), cast(uint)glyph, sbBLDrawFuncs, &i);
 }
 
-private:
+private extern(C):
 
 struct __glyph_intermediate {
     SbContext context;
     vec2 position;
 }
-
-// Harfbuzz-blend2d interface
-extern(C):
 
 // drawfunc store
 __gshared hb_draw_funcs_t* sbBLDrawFuncs;
