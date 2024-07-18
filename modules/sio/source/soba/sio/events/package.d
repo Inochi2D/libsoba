@@ -160,4 +160,42 @@ public:
     void setFocus(SioIEventHandler focused) {
         this.focused = focused;
     }
+
+    /**
+        Adds an event handler to the event loop
+    */
+    void addHandler(SioWindowID id, SioIEventHandler handler) {
+        if (id !in handlers) {
+            handlers[id] = weak_vector!SioIEventHandler();
+        }
+        handlers[id] ~= handler;
+    }
+
+    /**
+        Removes all event handlers for the specified window from the event loop
+    */
+    void removeAllHandlersFor(SioWindowID id) {
+        if (id in handlers) {
+            handlers.remove(id);
+        }
+    }
+    
+    /**
+        Removes a event handler to the event loop
+    */
+    void removeHandler(SioWindowID id, SioIEventHandler handler) {
+        foreach(i; 0..handlers[id].size()) {
+            if (handlers[id][i] is handler) {
+                handlers[id].remove(i);
+                return;
+            }
+        }
+    }
+
+    /**
+        Adds a animation handler to the event loop
+    */
+    void addAnimation(SioIAnimationHandler handler) {
+        animations ~= handler;
+    }
 }

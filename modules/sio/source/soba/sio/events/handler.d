@@ -20,22 +20,6 @@ interface SioIEventHandler {
         Push an event to the handler
     */
     void pushEvent(SioEvent event);
-
-    /**
-        Tells the event system to register the handler for execution
-    */
-    final
-    void registerHandlerFor(SioWindowID window) {
-        
-    }
-
-    /**
-        Tells the event system to unregister the handler for execution
-    */
-    final
-    void unregisterHandlerFor(SioWindowID window) {
-
-    }
 }
 
 /**

@@ -285,6 +285,8 @@ public:
 
     ~this() {
 
+        SioEventLoop.instance().removeAllHandlersFor(wID);
+
         // Destroy metal handle if need be
         if (surfaceInfo.type == SioWindowSurfaceType.metal) {
             SDL_Metal_DestroyView(cast(SDL_MetalView)surfaceHandle);
@@ -299,6 +301,8 @@ public:
     */
     this(SioWindowCreateInfo windowInfo) {
         this.createWindow(windowInfo);
+
+        SioEventLoop.instance().addHandler(wID, this);
     }
 
     /**
