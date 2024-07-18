@@ -17,6 +17,7 @@ alias SbGlyphId = uint;
     Text shaping direction
 */
 enum SbTextDirection : uint {
+    invalid = 0,
 
     /**
         Left-to-right
@@ -159,12 +160,16 @@ public:
 
         shaped.resize(count);
         foreach(i; 0..count) {
+            float xadvance = glyph_pos[i].x_advance*tracking;
+            float yadvance = -glyph_pos[i].y_advance;
+
             SbGlyph glyph;
             glyph.glyphId = glyph_info[i].codepoint;
-            glyph.xAdvance = cast(int)(glyph_pos[i].x_advance*tracking);
-            glyph.yAdvance = glyph_pos[i].y_advance;
+            glyph.xAdvance = cast(int)xadvance;
+            glyph.yAdvance = cast(int)yadvance;
+            
             glyph.xOffset = glyph_pos[i].x_offset;
-            glyph.yOffset = cast(int)(glyph_pos[i].y_offset+baselineOffset);
+            glyph.yOffset = (glyph_pos[i].y_offset+cast(int)baselineOffset);
 
             shaped[i] = glyph;
         }

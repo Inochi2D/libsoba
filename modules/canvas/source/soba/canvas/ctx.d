@@ -126,10 +126,10 @@ private:
                 glyphs[i].glyphId,
                 vec2(
                     position.x+xOffset,
-                    position.y+yOffset
+                    position.y-yOffset
                 )
             );
-
+            
             // Advance
             position.x += xAdvance;
             position.y += yAdvance;
