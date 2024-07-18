@@ -2,6 +2,9 @@ module soba.sio;
 import numem.all;
 import bindbc.sdl;
 
+public import soba.sio.window;
+public import soba.sio.events;
+
 @nogc nothrow:
 
 /**

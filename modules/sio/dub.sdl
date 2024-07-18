@@ -10,11 +10,11 @@ dependency "inmath" version="~>1.1.1"
 dependency "intel-intrinsics" version="~>1.11.18"
 
 targetPath "out/"
-targetName "sc"
+targetName "sio"
 
+copyFiles "libs/win64/*" platform="windows-x86_64"
+copyFiles "libs/win32/*" platform="windows-x86"
+copyFiles "libs/osx/*" platform="osx"
 copyFiles "libs/README-SDL.txt"
-copyFiles "libs/osx/*.dylib" platform="osx"
-copyFiles "libs/win64/SDL2.dll" platform="windows-x64"
-copyFiles "libs/win32/SDL2.dll" platform="windows-x86"
 
 versions "SDL_2_28"

@@ -1,12 +1,14 @@
-module soba.siok.window;
+module soba.sio.window;
 import numem.all;
 import bindbc.sdl;
 import inmath.linalg;
 
+import soba.sio.events;
+
 /**
     Window style
 */
-enum SIOWindowStyle {
+enum SioWindowStyle {
     /**
         A SIO window, a SIO window is always "borderless" by SDL2 standards,
         but additionally allows the onWindowHitTest event to be called.
@@ -17,13 +19,28 @@ enum SIOWindowStyle {
         System-native window.
         onWindowHitTest is never called for this window, and the OS draws the window chrome.
     */
-    nativeWindow
+    nativeWindow,
+
+    /**
+        Window should be treated as a utility window
+    */
+    utilityWindow,
+    
+    /**
+        Window should be treated as a popup window
+    */
+    popupWindow,
+    
+    /**
+        Window should be treated as a tooltip
+    */
+    tooltipWindow
 }
 
 /**
     The result of doing a hittest on a SIO Window
 */
-enum SIOHitResult : int {
+enum SioHitResult : int {
     /**
         Pass through mouse input to the window.
     */
@@ -78,26 +95,26 @@ enum SIOHitResult : int {
 /**
     A window ID
 */
-alias SIOWindowID = uint;
+alias SioWindowID = uint;
 
 /**
     Tells SIO to center the window on open.
 */
-enum uint SIOWindowCenter = SDL_WINDOWPOS_CENTERED;
+enum uint SioWindowCenter = SDL_WINDOWPOS_CENTERED;
 
 /**
     Info needed to create a window
 */
-struct SIOWindowCreateInfo {
+struct SioWindowCreateInfo {
     /**
         Information about the surface to be created on the window
     */
-    SIOSurfaceCreateInfo surfaceInfo;
+    SioSurfaceCreateInfo surfaceInfo;
 
     /**
         Style of the window to be created.
     */
-    SIOWindowStyle windowStyle = SIOWindowStyle.sioWindow;
+    SioWindowStyle windowStyle = SioWindowStyle.sioWindow;
 
     /**
         Title of the window
@@ -107,12 +124,12 @@ struct SIOWindowCreateInfo {
     /**
         X coordinate of the window
     */
-    uint x = SIOWindowCenter;
+    uint x = SioWindowCenter;
 
     /**
         Y coordinate of the window
     */
-    uint y = SIOWindowCenter;
+    uint y = SioWindowCenter;
 
     /**
         Width of the Window
@@ -138,7 +155,7 @@ struct SIOWindowCreateInfo {
 /**
     The type of surface associated with the window
 */
-enum SIOWindowSurfaceType {
+enum SioWindowSurfaceType {
     /// OpenGL
     GL,
 
@@ -154,16 +171,16 @@ enum SIOWindowSurfaceType {
 /**
     Creation info for surfaces.
 */
-struct SIOSurfaceCreateInfo {
+struct SioSurfaceCreateInfo {
 
     /**
         The type of surface to create
     */
-    SIOWindowSurfaceType type;
+    SioWindowSurfaceType type;
 
     union {
 
-        struct SIOSurfaceCreateInfoGL {
+        struct SioSurfaceCreateInfoGL {
             uint major;
             uint minor;
         }
@@ -171,30 +188,30 @@ struct SIOSurfaceCreateInfo {
         /**
             Context creation info for OpenGL + GLES
         */
-        SIOSurfaceCreateInfoGL gl;
+        SioSurfaceCreateInfoGL gl;
     }
 }
 
-alias evOnWindowHitFunc = SIOHitResult function(SIOWindow window, vec2i mousePosition) nothrow;
+alias evOnWindowHitFunc = SioHitResult function(SioWindow window, vec2i mousePosition) nothrow;
 
 /**
     A window
 */
-class SIOWindow {
+class SioWindow : SioIEventHandler {
 @nogc:
 private:
     SDL_Window* handle;
-    SIOWindowID wID;
-    SIOWindowStyle wStyle;
+    SioWindowID wID;
+    SioWindowStyle wStyle;
     nstring title;
     bool _borderless;
     bool _resizable;
 
     // Surface
-    SIOSurfaceCreateInfo surfaceInfo;
+    SioSurfaceCreateInfo surfaceInfo;
     void* surfaceHandle;
 
-    SDL_WindowFlags setupWindowFlags(SIOWindowCreateInfo info) {
+    SDL_WindowFlags setupWindowFlags(SioWindowCreateInfo info) {
 
         SDL_WindowFlags flags;
         flags |= SDL_WINDOW_HIDDEN;
@@ -213,21 +230,21 @@ private:
 
         // Attribute and flag setup
         final switch(info.surfaceInfo.type) {
-            case SIOWindowSurfaceType.GL:
-            case SIOWindowSurfaceType.GLES:
+            case SioWindowSurfaceType.GL:
+            case SioWindowSurfaceType.GLES:
                 flags |= SDL_WINDOW_OPENGL;
 
                 SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, info.surfaceInfo.gl.major );
                 SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, info.surfaceInfo.gl.minor );
                 SDL_GL_SetAttribute(
                     SDL_GL_CONTEXT_PROFILE_MASK, 
-                    info.surfaceInfo.type == SIOWindowSurfaceType.GL ? 
+                    info.surfaceInfo.type == SioWindowSurfaceType.GL ? 
                         SDL_GL_CONTEXT_PROFILE_CORE :
                         SDL_GL_CONTEXT_PROFILE_ES
                 );
                 break;
 
-            case SIOWindowSurfaceType.metal:
+            case SioWindowSurfaceType.metal:
                 flags |= SDL_WINDOW_METAL;
                 break;
         }
@@ -235,31 +252,28 @@ private:
         return flags;
     }
 
-    bool setupSurface(SDL_Window* window, SIOWindowSurfaceType type) {
+    bool setupSurface(SDL_Window* window, SioWindowSurfaceType type) {
         final switch(type) {
-            case SIOWindowSurfaceType.GL:
-            case SIOWindowSurfaceType.GLES:
+            case SioWindowSurfaceType.GL:
+            case SioWindowSurfaceType.GLES:
                 surfaceHandle = cast(void*)SDL_GL_CreateContext(window);
                 SDL_GL_MakeCurrent(window, cast(SDL_GLContext)surfaceHandle);
                 return true;
 
-            case SIOWindowSurfaceType.metal:
+            case SioWindowSurfaceType.metal:
                 surfaceHandle = SDL_Metal_CreateView(window);
                 return true;
         }
     }
 
-    void createWindow(SIOWindowCreateInfo info) {
-        SDL_Window* window;
-
+    void createWindow(SioWindowCreateInfo info) {
         SDL_WindowFlags flags = this.setupWindowFlags(info);
 
         handle = SDL_CreateWindow(title.toCString(), info.x, info.y, info.width, info.height, flags);
         enforce(handle !is null, nstring("Basic window creation failed!"));
-        enforce(this.setupSurface(window, info.surfaceInfo.type), nstring("Rendering context creation failed!"));
+        enforce(this.setupSurface(handle, info.surfaceInfo.type), nstring("Rendering context creation failed!"));
 
-        this.wID = SDL_GetWindowID(window);
-        this.handle = window;
+        this.wID = SDL_GetWindowID(handle);
         this.title = info.title;
         this.wStyle = info.windowStyle;
         this.surfaceInfo = info.surfaceInfo;
@@ -272,7 +286,7 @@ public:
     ~this() {
 
         // Destroy metal handle if need be
-        if (surfaceInfo.type == SIOWindowSurfaceType.metal) {
+        if (surfaceInfo.type == SioWindowSurfaceType.metal) {
             SDL_Metal_DestroyView(cast(SDL_MetalView)surfaceHandle);
         }
 
@@ -283,7 +297,7 @@ public:
     /**
         Creates a window
     */
-    this(SIOWindowCreateInfo windowInfo) {
+    this(SioWindowCreateInfo windowInfo) {
         this.createWindow(windowInfo);
     }
 
@@ -291,7 +305,7 @@ public:
         Gets the numeric ID of the Window
     */
     final
-    SIOWindowID getId() {
+    SioWindowID getId() {
         return wID;
     }
 
@@ -345,7 +359,7 @@ public:
         Gets the type of surface created
     */
     final
-    SIOWindowSurfaceType getSurfaceType() {
+    SioWindowSurfaceType getSurfaceType() {
         return surfaceInfo.type;
     }
 
@@ -442,7 +456,7 @@ public:
         Make this window a modal window for another
     */
     final
-    void setModalFor(SIOWindow other) {
+    void setModalFor(SioWindow other) {
         SDL_SetWindowModalFor(handle, other ? other.handle : null);
     }
 
@@ -454,10 +468,17 @@ public:
     */
     final
     void setOnWindowHitTest(evOnWindowHitFunc func) {
-        if (wStyle == SIOWindowStyle.sioWindow) {
+        if (wStyle == SioWindowStyle.sioWindow) {
             this.evOnWindowHit = func;
             SDL_SetWindowHitTest(handle, func ? &_SDL_HitTest_Impl : null, cast(void*)this);
         }
+    }
+
+    /**
+        Pushes an event to the window
+    */
+    void pushEvent(SioEvent event) {
+
     }
 }
 
@@ -466,7 +487,7 @@ public:
 //
 private {
     extern(C) SDL_HitTestResult _SDL_HitTest_Impl(SDL_Window* win, const(SDL_Point)* area, void* data) nothrow {
-        SIOWindow window = cast(SIOWindow)data;
+        SioWindow window = cast(SioWindow)data;
         return window.evOnWindowHit(window, vec2i(area.x, area.y));
     }
 }
