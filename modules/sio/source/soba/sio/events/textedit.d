@@ -35,11 +35,6 @@ import numem.all;
 enum SioTextEditEventID : ubyte {
 
     /**
-        Text editing has begun
-    */
-    begin,
-
-    /**
         User is composing text
     */
     compose,
@@ -61,7 +56,7 @@ align(4):
     /**
         Current text slice
     */
-    SioTextEntry* text;
+    SioTextEntry* entry;
 }
 
 
@@ -70,13 +65,43 @@ align(4):
     and should NOT be freed.
 */
 struct SioTextEntry {
+@nogc:
 
     /// Current text in buffer
     nstring text;
 
     /// The cursor position in the text
-    uint cursor;
+    int cursor;
 
     /// The length of text selection
-    uint selectionLength;
+    int selectionLength;
+
+    /// Whether the text is currently being edited.
+    bool editing;
+
+package(soba.sio):
+
+    uint textIdx;
+
+    uint target;
+
+    void reset() {
+        textIdx = 0;
+    }
+
+    void addText(char[] data, uint composition, uint length) {
+        if (textIdx == 0) {
+            text.clear();
+        }
+
+        text ~= data[0..$];
+        textIdx += data.length;
+
+        cursor = composition;
+        selectionLength = length;
+    }
+
+    bool shouldSubmit() {
+        return textIdx > 0;
+    }
 }

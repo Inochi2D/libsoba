@@ -41,7 +41,6 @@ private:
     // TODO: Add a type to numem for a fixed size buffer.
     weak_vector!SioEvent submittedEvents;
 
-    SioTextEntry textEntry;
     SioIEventHandler focused;
 
     void pumpSDLEventsToLoop() {
@@ -59,6 +58,7 @@ private:
         }
 
         if (cont) {
+            size_t inputLength;
             do {
                 SioEvent toSubmit;
                 mswitch: switch(lastEvent.type) {
@@ -173,10 +173,29 @@ private:
                         this.pushEvent(toSubmit);
                         break;
 
+                    case SDL_TEXTEDITING_EXT:
+                        SDL_TextEditingEvent ev = lastEvent.edit;
+                        textEntry.target = ev.windowID;
+                        textEntry.editing = true;
+                        textEntry.addText(ev.text[0..strlen(&ev.text[0])], ev.start, ev.length);
+                        break;
+
+                    case SDL_TEXTINPUT:
+                        SDL_TextInputEvent ev = lastEvent.text;
+                        textEntry.target = ev.windowID;
+                        textEntry.editing = false;
+                        textEntry.addText(ev.text[0..strlen(&ev.text[0])], 0, 0);
+                        break;
+
                     default: break;
                 }
                 
             } while(SDL_PollEvent(&lastEvent));
+
+            if (composeEnabled && textEntry.shouldSubmit()) {
+                this.composeSubmitText();
+                textEntry.reset();
+            }
         }
     }
 
@@ -224,6 +243,26 @@ private:
         animations.data[0..animationBackBuffer.size()] = animationBackBuffer[0..$];
     }
 
+    
+    // Text handling
+    bool composeEnabled;
+    SioTextEntry textEntry;
+    void composeSubmitText() {
+        SioEvent toSubmit;
+
+        // Submission info
+        toSubmit.type = SioEventType.textEdit;
+        toSubmit.target = textEntry.target;
+
+        toSubmit.textEdit.entry = &textEntry;
+        toSubmit.textEdit.event =
+            textEntry.editing ? 
+            SioTextEditEventID.compose : 
+            SioTextEditEventID.submit;
+        
+        this.pushEvent(toSubmit);
+    }
+
 public:
 
     ~this() {
@@ -231,6 +270,12 @@ public:
         nogc_delete(animations);
         nogc_delete(animationBackBuffer);
         nogc_delete(submittedEvents);
+    }
+
+    this() {
+
+        // Text input as a default is a nono.
+        SDL_StopTextInput();
     }
 
 
@@ -250,6 +295,7 @@ public:
     final
     void startTyping() {
         SDL_StartTextInput();
+        composeEnabled = true;
     }
 
     /**
@@ -258,6 +304,7 @@ public:
     final
     void stopTyping() {
         SDL_StopTextInput();
+        composeEnabled = false;
     }
 
     /**
