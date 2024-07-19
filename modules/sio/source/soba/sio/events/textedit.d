@@ -30,6 +30,7 @@
 */
 
 module soba.sio.events.textedit;
+import soba.sio.events;
 import numem.all;
 
 enum SioTextEditEventID : ubyte {
@@ -76,9 +77,6 @@ struct SioTextEntry {
     /// The length of text selection
     int selectionLength;
 
-    /// Whether the text is currently being edited.
-    bool editing;
-
 package(soba.sio):
 
     uint textIdx;
@@ -89,7 +87,7 @@ package(soba.sio):
         textIdx = 0;
     }
 
-    void addText(char[] data, uint composition, uint length) {
+    void addText(char[] data, uint composition, uint length, bool submitOnBegin) {   
         if (textIdx == 0) {
             text.clear();
         }
@@ -103,5 +101,21 @@ package(soba.sio):
 
     bool shouldSubmit() {
         return textIdx > 0;
+    }
+
+    void submitText(bool composition) {
+        SioEvent toSubmit;
+
+        // Submission info
+        toSubmit.type = SioEventType.textEdit;
+        toSubmit.target = target;
+
+        toSubmit.textEdit.entry = &this;
+        toSubmit.textEdit.event =
+            composition ? 
+            SioTextEditEventID.compose : 
+            SioTextEditEventID.submit;
+        
+        SioEventLoop.instance().pushEvent(toSubmit);
     }
 }

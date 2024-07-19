@@ -58,7 +58,6 @@ private:
         }
 
         if (cont) {
-            size_t inputLength;
             do {
                 SioEvent toSubmit;
                 mswitch: switch(lastEvent.type) {
@@ -173,18 +172,17 @@ private:
                         this.pushEvent(toSubmit);
                         break;
 
+                    case SDL_TEXTEDITING:
                     case SDL_TEXTEDITING_EXT:
                         SDL_TextEditingEvent ev = lastEvent.edit;
-                        textEntry.target = ev.windowID;
-                        textEntry.editing = true;
-                        textEntry.addText(ev.text[0..strlen(&ev.text[0])], ev.start, ev.length);
+                        composeEntry.target = ev.windowID;
+                        composeEntry.addText(ev.text[0..strlen(&ev.text[0])], ev.start, ev.length, true);
                         break;
 
                     case SDL_TEXTINPUT:
                         SDL_TextInputEvent ev = lastEvent.text;
                         textEntry.target = ev.windowID;
-                        textEntry.editing = false;
-                        textEntry.addText(ev.text[0..strlen(&ev.text[0])], 0, 0);
+                        textEntry.addText(ev.text[0..strlen(&ev.text[0])], 0, 0, false);
                         break;
 
                     default: break;
@@ -192,9 +190,15 @@ private:
                 
             } while(SDL_PollEvent(&lastEvent));
 
-            if (composeEnabled && textEntry.shouldSubmit()) {
-                this.composeSubmitText();
+            if (textEntry.shouldSubmit()) {
+                textEntry.submitText(false);
+                composeEntry.reset();
                 textEntry.reset();
+            }
+
+            if (composeEntry.shouldSubmit()) {
+                composeEntry.submitText(true);
+                composeEntry.reset();
             }
         }
     }
@@ -246,22 +250,8 @@ private:
     
     // Text handling
     bool composeEnabled;
+    SioTextEntry composeEntry;
     SioTextEntry textEntry;
-    void composeSubmitText() {
-        SioEvent toSubmit;
-
-        // Submission info
-        toSubmit.type = SioEventType.textEdit;
-        toSubmit.target = textEntry.target;
-
-        toSubmit.textEdit.entry = &textEntry;
-        toSubmit.textEdit.event =
-            textEntry.editing ? 
-            SioTextEditEventID.compose : 
-            SioTextEditEventID.submit;
-        
-        this.pushEvent(toSubmit);
-    }
 
 public:
 
