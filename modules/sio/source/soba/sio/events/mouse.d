@@ -39,7 +39,8 @@ import bindbc.sdl;
     Window event types
 */
 enum SioMouseEventID : uint {
-    button,
+    buttonUp,
+    buttonDown,
     wheel,
     motion
 }

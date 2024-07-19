@@ -64,10 +64,11 @@ private:
                 mswitch: switch(lastEvent.type) {
                     case SDL_WINDOWEVENT:
                         SDL_WindowEvent ev = lastEvent.window;
-                        
-                        toSubmit.target = ev.windowID;
                         toSubmit.type = SioEventType.window;
+                        toSubmit.target = ev.windowID;
+
                         switch(ev.event) {
+
                             // Events without data.
                             case SDL_WINDOWEVENT_CLOSE:         toSubmit.event = SioWindowEventID.closeRequested;   break;
                             case SDL_WINDOWEVENT_SHOWN:         toSubmit.event = SioWindowEventID.opened;           break;
@@ -103,11 +104,78 @@ private:
                             default:
                                 break mswitch;
                         }
+                        
+                        this.pushEvent(toSubmit);
+                        break;
+
+                    case SDL_MOUSEMOTION:
+                        SDL_MouseMotionEvent ev = lastEvent.motion;
+                        toSubmit.type = SioEventType.mouse;
+                        toSubmit.target = ev.windowID;
+                        
+                        toSubmit.mouse.event = SioMouseEventID.motion;
+                        toSubmit.mouse.mouseX = ev.x;
+                        toSubmit.mouse.mouseY = ev.y;
+
+                        toSubmit.mouse.motion.relX = ev.xrel;
+                        toSubmit.mouse.motion.relX = ev.yrel;
+                        toSubmit.mouse.motion.buttonState = ev.state;
 
                         this.pushEvent(toSubmit);
                         break;
+
+                    case SDL_MOUSEBUTTONDOWN:
+                        SDL_MouseButtonEvent ev = lastEvent.button;
+                        toSubmit.type = SioEventType.mouse;
+                        toSubmit.target = ev.windowID;
+
+                        toSubmit.mouse.event = SioMouseEventID.buttonDown;
+                        toSubmit.mouse.mouseX = ev.x;
+                        toSubmit.mouse.mouseY = ev.y;
+
+                        toSubmit.mouse.button.btn = cast(SioMouseButton)ev.button;
+                        toSubmit.mouse.button.pressed = ev.state == SDL_PRESSED;
+                        toSubmit.mouse.button.clicks = ev.clicks;
+                        
+                        this.pushEvent(toSubmit);
+                        break;
+
+                    case SDL_MOUSEBUTTONUP:
+                        SDL_MouseButtonEvent ev = lastEvent.button;
+                        toSubmit.type = SioEventType.mouse;
+                        toSubmit.target = ev.windowID;
+
+                        toSubmit.mouse.event = SioMouseEventID.buttonUp;
+                        toSubmit.mouse.mouseX = ev.x;
+                        toSubmit.mouse.mouseY = ev.y;
+
+                        toSubmit.mouse.button.btn = cast(SioMouseButton)ev.button;
+                        toSubmit.mouse.button.pressed = ev.state == SDL_PRESSED;
+                        toSubmit.mouse.button.clicks = ev.clicks;
+                        
+                        this.pushEvent(toSubmit);
+                        break;
+                    
+                    case SDL_MOUSEWHEEL:
+                        SDL_MouseWheelEvent ev = lastEvent.wheel;
+                        toSubmit.type = SioEventType.mouse;
+                        toSubmit.target = ev.windowID;
+
+                        toSubmit.mouse.event = SioMouseEventID.wheel;
+                        toSubmit.mouse.mouseX = ev.mouseX;
+                        toSubmit.mouse.mouseY = ev.mouseY;
+                        
+                        toSubmit.mouse.scroll.directionFlipped = 
+                            ev.direction == SDL_MOUSEWHEEL_FLIPPED;
+                        toSubmit.mouse.scroll.x = ev.preciseX;
+                        toSubmit.mouse.scroll.y = ev.preciseY;
+                        
+                        this.pushEvent(toSubmit);
+                        break;
+
                     default: break;
                 }
+                
             } while(SDL_PollEvent(&lastEvent));
         }
     }
