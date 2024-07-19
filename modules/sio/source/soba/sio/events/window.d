@@ -36,11 +36,75 @@ module soba.sio.events.window;
     Window event types
 */
 enum SioWindowEventID : uint {
-    close,
+    
+    /**
+        Window has been opened.
+    */
+    opened,
+    
+    /**
+        Window has been closed.
+    */
+    closed,
+    
+    /**
+        Window requested to be closed.
+    */
+    closeRequested,
+    
+    /**
+        Window was resized
+    */
     resized,
+    
+    /**
+        Window was moved
+    */
     moved,
+    
+    /**
+        Window was maximized
+    */
     maximized,
+    
+    /**
+        Window was minimized
+    */
     minimized,
+    
+    /**
+        Window was restored to normal size and position
+    */
+    restored,
+
+    /**
+        Window got mouse focus
+    */
+    mouseEnter,
+    
+    /**
+        Window lost mouse focus
+    */
+    mouseLeave,
+
+    /**
+        Window got keyboard focus
+    */
+    keyboardEnter,
+
+    /**
+        Window got keyboard focus
+    */
+    keyboardLeave,
+
+    /**
+        Window moved to another display
+    */
+    displayChanged,
+
+    /**
+        Window was requested to redraw.
+    */
     redraw
 }
 

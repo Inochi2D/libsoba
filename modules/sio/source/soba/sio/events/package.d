@@ -33,83 +33,21 @@ private:
     float currTime;
     float lastTime;
 
-    weak_map!(SioWindowID, weak_vector!SioIEventHandler) handlers;
+    map!(SioWindowID, weak_vector!SioIEventHandler) handlers;
 
     weak_vector!SioIAnimationHandler animations;
     weak_vector!SioIAnimationHandler animationBackBuffer;
 
+    // TODO: Add a type to numem for a fixed size buffer.
+    weak_vector!SioEvent submittedEvents;
+
     SioTextEntry textEntry;
     SioIEventHandler focused;
 
-public:
-
-    /**
-        Returns the singleton event loop instance
-    */
-    static SioEventLoop instance() {
-        if (!singletonInstance) {
-            singletonInstance = nogc_new!SioEventLoop();
-        }
-        return singletonInstance;
-    }
-
-    /**
-        Starts handling text entry
-    */
-    void startTyping() {
-        SDL_StartTextInput();
-    }
-
-    /**
-        Stops handling text entry
-    */
-    void stopTyping() {
-        SDL_StopTextInput();
-    }
-
-    /**
-        Gets whether the event loop is getting text typing input.
-    */
-    bool isTyping() {
-        return cast(bool)SDL_IsTextInputActive();
-    }
-
-    /**
-        Sets the region tht is being typed in
-    */
-    void setTypingRegion(recti area) {
-        SDL_Rect rect = SDL_Rect(area.x, area.y, area.width, area.height);
-        SDL_SetTextInputRect(&rect);
-    }
-
-    /**
-        Sets string in clipboard
-    */
-    void setClipboardText(nstring toCopy) {
-        SDL_SetClipboardText(toCopy.ptr);
-    }
-
-    /**
-        Gets string in clipboard
-    */
-    nstring getClipboardText() {
-        char* tmp = SDL_GetClipboardText();
-        nstring ret = nstring(tmp[0..strlen(tmp)]);
-        SDL_free(tmp);
-
-        return ret;
-    }
-
-    /**
-        Runs one update cycle of the event loop.
-    */
-    bool pumpEvents() {
+    void pumpSDLEventsToLoop() {
 
         // Pump system events
         SDL_PumpEvents();
-
-        currTime = cast(float)SDL_GetTicks64()*0.0001;
-        float deltaTime = currTime-lastTime;
 
         // If we have ongoing animations, they take precedent over the event queulastEvent.
         // As such we shouldn't freeze the main thread while an animation is running.
@@ -117,17 +55,91 @@ public:
         if (animations.size() > 0) {
             cont = SDL_PollEvent(&lastEvent);
         } else {
-            cont = SDL_WaitEventTimeout(&lastEvent, 500);
+            cont = SDL_WaitEventTimeout(&lastEvent, 100);
         }
 
         if (cont) {
             do {
-                // SioWindowID windowID = lastEvent.event.windowID;
+                SioEvent toSubmit;
+                mswitch: switch(lastEvent.type) {
+                    case SDL_WINDOWEVENT:
+                        SDL_WindowEvent ev = lastEvent.window;
+                        
+                        toSubmit.target = ev.windowID;
+                        toSubmit.type = SioEventType.window;
+                        switch(ev.event) {
+                            // Events without data.
+                            case SDL_WINDOWEVENT_CLOSE:         toSubmit.event = SioWindowEventID.closeRequested;   break;
+                            case SDL_WINDOWEVENT_SHOWN:         toSubmit.event = SioWindowEventID.opened;           break;
+                            case SDL_WINDOWEVENT_HIDDEN:        toSubmit.event = SioWindowEventID.closed;           break;
+                            case SDL_WINDOWEVENT_EXPOSED:       toSubmit.event = SioWindowEventID.redraw;           break;
+                            case SDL_WINDOWEVENT_MINIMIZED:     toSubmit.event = SioWindowEventID.minimized;        break;
+                            case SDL_WINDOWEVENT_MAXIMIZED:     toSubmit.event = SioWindowEventID.maximized;        break;
+                            case SDL_WINDOWEVENT_RESTORED:      toSubmit.event = SioWindowEventID.restored;         break;
+                            case SDL_WINDOWEVENT_ENTER:         toSubmit.event = SioWindowEventID.mouseEnter;       break;
+                            case SDL_WINDOWEVENT_LEAVE:         toSubmit.event = SioWindowEventID.mouseLeave;       break;
+                            case SDL_WINDOWEVENT_FOCUS_GAINED:  toSubmit.event = SioWindowEventID.keyboardEnter;    break;
+                            case SDL_WINDOWEVENT_FOCUS_LOST:    toSubmit.event = SioWindowEventID.keyboardLeave;    break;
 
-                // TODO: pipe events to Sio
+                            // Events which have data
+                            case SDL_WINDOWEVENT_SIZE_CHANGED:
+                                toSubmit.window.event = SioWindowEventID.resized;
+                                toSubmit.window.data1 = ev.data1;
+                                toSubmit.window.data2 = ev.data2;
+                                break;
+
+                            case SDL_WINDOWEVENT_MOVED:
+                                toSubmit.window.event = SioWindowEventID.moved;
+                                toSubmit.window.data1 = ev.data1;
+                                toSubmit.window.data2 = ev.data2;
+                                break;
+
+                            case SDL_WINDOWEVENT_DISPLAY_CHANGED:
+                                toSubmit.window.event = SioWindowEventID.displayChanged;
+                                toSubmit.window.data1 = ev.data1;
+                                break;
+
+                            // Discard remaining events
+                            default:
+                                break mswitch;
+                        }
+
+                        this.pushEvent(toSubmit);
+                        break;
+                    default: break;
+                }
             } while(SDL_PollEvent(&lastEvent));
         }
+    }
 
+    bool processSioEvents() {
+        if (submittedEvents.size() > 0) {
+            foreach(ref SioEvent ev; submittedEvents) {
+                if (ev.target in handlers) {
+                    foreach(ref handler; handlers[ev.target]) {
+                        handler.processEvent(ev);
+                    }
+                }
+
+                if (ev.target == SioWindowAll) {
+                    foreach(target; handlers) {
+                        foreach(ref handler; target) {
+                            handler.processEvent(ev);
+                        }
+                    }
+                }
+            }
+
+            // Resize, keeping the allocated memory of the event queue
+            submittedEvents.resize(0);
+            return true;
+        }
+
+        return false;
+    }
+
+    void processAnimations(float deltaTime) {
+        
         // Animation events
         // resize does not resize the underlying memory
         // so this *should* be efficient enough.
@@ -142,14 +154,101 @@ public:
         // enough too.
         animations.resize(animationBackBuffer.size());
         animations.data[0..animationBackBuffer.size()] = animationBackBuffer[0..$];
+    }
+
+public:
+
+    ~this() {
+        nogc_delete(handlers);
+        nogc_delete(animations);
+        nogc_delete(animationBackBuffer);
+        nogc_delete(submittedEvents);
+    }
+
+
+    /**
+        Returns the singleton event loop instance
+    */
+    static SioEventLoop instance() {
+        if (!singletonInstance) {
+            singletonInstance = nogc_new!SioEventLoop();
+        }
+        return singletonInstance;
+    }
+
+    /**
+        Starts handling text entry
+    */
+    final
+    void startTyping() {
+        SDL_StartTextInput();
+    }
+
+    /**
+        Stops handling text entry
+    */
+    final
+    void stopTyping() {
+        SDL_StopTextInput();
+    }
+
+    /**
+        Gets whether the event loop is getting text typing input.
+    */
+    final
+    bool isTyping() {
+        return cast(bool)SDL_IsTextInputActive();
+    }
+
+    /**
+        Sets the region tht is being typed in
+    */
+    final
+    void setTypingRegion(recti area) {
+        SDL_Rect rect = SDL_Rect(area.x, area.y, area.width, area.height);
+        SDL_SetTextInputRect(&rect);
+    }
+
+    /**
+        Sets string in clipboard
+    */
+    final
+    void setClipboardText(nstring toCopy) {
+        SDL_SetClipboardText(toCopy.ptr);
+    }
+
+    /**
+        Gets string in clipboard
+    */
+    final
+    nstring getClipboardText() {
+        char* tmp = SDL_GetClipboardText();
+        nstring ret = nstring(tmp[0..strlen(tmp)]);
+        SDL_free(tmp);
+
+        return ret;
+    }
+
+    /**
+        Runs one update cycle of the event loop.
+    */
+    final
+    void pumpEvents() {
+
+        currTime = cast(float)SDL_GetTicks64()*0.0001;
+        float deltaTime = currTime-lastTime;
+        
+        this.pumpSDLEventsToLoop();
+        this.processSioEvents();
+        this.processAnimations(deltaTime);
 
         lastTime = currTime;
-        return false;
     }
 
     /**
         Gets the handler currently being focused
     */
+    final
     SioIEventHandler getFocus() {
         return focused;
     }
@@ -157,6 +256,7 @@ public:
     /**
         Sets the handler currently being focused
     */
+    final
     void setFocus(SioIEventHandler focused) {
         this.focused = focused;
     }
@@ -164,6 +264,23 @@ public:
     /**
         Adds an event handler to the event loop
     */
+    final
+    void addGlobalHandler(SioIEventHandler handler) {
+        this.addHandler(SioWindowGlobal, handler);
+    }
+    
+    /**
+        Removes a event handler from the event loop
+    */
+    final
+    void removeGlobalHandler(SioIEventHandler handler) {
+        this.removeHandler(SioWindowGlobal, handler);
+    }
+
+    /**
+        Adds an event handler to the event loop
+    */
+    final
     void addHandler(SioWindowID id, SioIEventHandler handler) {
         if (id !in handlers) {
             handlers[id] = weak_vector!SioIEventHandler();
@@ -174,6 +291,7 @@ public:
     /**
         Removes all event handlers for the specified window from the event loop
     */
+    final
     void removeAllHandlersFor(SioWindowID id) {
         if (id in handlers) {
             handlers.remove(id);
@@ -181,8 +299,9 @@ public:
     }
     
     /**
-        Removes a event handler to the event loop
+        Removes a event handler from the event loop
     */
+    final
     void removeHandler(SioWindowID id, SioIEventHandler handler) {
         foreach(i; 0..handlers[id].size()) {
             if (handlers[id][i] is handler) {
@@ -195,7 +314,25 @@ public:
     /**
         Adds a animation handler to the event loop
     */
+    final
     void addAnimation(SioIAnimationHandler handler) {
         animations ~= handler;
+    }
+
+    /**
+        Adds an event to the queue
+    */
+    final
+    void pushEvent(SioEvent event) {
+        event.timestamp = SDL_GetTicks();
+        submittedEvents ~= event;
+    }
+
+    /**
+        Adds an event to the queue
+    */
+    final
+    bool hasHandlers() {
+        return handlers.length > 0;
     }
 }

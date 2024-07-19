@@ -17,9 +17,9 @@ interface SioIEventHandler {
 @nogc:
     
     /**
-        Push an event to the handler
+        Tell the event handler to process the specified event.
     */
-    void pushEvent(SioEvent event);
+    void processEvent(SioEvent event);
 }
 
 /**

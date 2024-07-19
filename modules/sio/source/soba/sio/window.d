@@ -98,6 +98,17 @@ enum SioHitResult : int {
 alias SioWindowID = uint;
 
 /**
+    A window ID indicating events should be passed to all windows.
+*/
+enum SioWindowID SioWindowAll = uint.max;
+
+/**
+    A special window ID, this window does not exist, but allows events to be
+    handled app-wide.
+*/
+enum SioWindowID SioWindowGlobal = uint.max-1;
+
+/**
     Tells SIO to center the window on open.
 */
 enum uint SioWindowCenter = SDL_WINDOWPOS_CENTERED;
@@ -192,7 +203,9 @@ struct SioSurfaceCreateInfo {
     }
 }
 
-alias evOnWindowHitFunc = SioHitResult function(SioWindow window, vec2i mousePosition) nothrow;
+alias OnWindowHit = SioHitResult function(SioWindow window, vec2i mousePosition) nothrow @nogc;
+alias OnWindowEvent = void function(SioWindow window, SioEvent event) @nogc;
+alias OnWindowSwap = void function(SioWindow window) @nogc;
 
 /**
     A window
@@ -280,7 +293,9 @@ private:
     }
 
     // Events
-    evOnWindowHitFunc evOnWindowHit;
+    OnWindowHit evOnWindowHit;
+    OnWindowEvent evOnWindowEvent;
+    OnWindowSwap evOnWindowSwap;
 public:
 
     ~this() {
@@ -457,6 +472,27 @@ public:
     }
 
     /**
+        Execute a framebuffer swap on the window.
+
+        This will be called automatically on redraw events.
+    */
+    final
+    void swap() {
+        switch(surfaceInfo.type) {
+            case SioWindowSurfaceType.GL:
+            case SioWindowSurfaceType.GLES:
+                SDL_GL_SwapWindow(handle);
+                break;
+
+            default: break;
+        }
+
+        if (this.evOnWindowSwap) {
+            this.evOnWindowSwap(this);
+        }
+    }
+
+    /**
         Make this window a modal window for another
     */
     final
@@ -471,7 +507,7 @@ public:
         NOTE: The window hit event may not throw exceptions.
     */
     final
-    void setOnWindowHitTest(evOnWindowHitFunc func) {
+    void setOnWindowHitTest(OnWindowHit func) {
         if (wStyle == SioWindowStyle.sioWindow) {
             this.evOnWindowHit = func;
             SDL_SetWindowHitTest(handle, func ? &_SDL_HitTest_Impl : null, cast(void*)this);
@@ -479,10 +515,52 @@ public:
     }
 
     /**
+        Sets a function which is called whenever the window swaps.
+    */
+    final
+    void setOnWindowSwap(OnWindowSwap func) {
+        this.evOnWindowSwap = func;
+    }
+
+    /**
+        Set a function called when a window hit test is requested.
+        Only is called for SIO windows.
+
+        NOTE: The window hit event may not throw exceptions.
+    */
+    final
+    void setEventHandler(OnWindowEvent func) {
+        this.evOnWindowEvent = func;
+    }
+
+    /**
         Pushes an event to the window
     */
-    void pushEvent(SioEvent event) {
+    final
+    void processEvent(SioEvent event) {
+        
+        if (this.evOnWindowEvent) {
+            this.evOnWindowEvent(this, event);
+        }
 
+        // Automatically swap on redraw.
+        if (event.type == SioEventType.window && 
+            event.window.event == SioWindowEventID.redraw) {
+            this.swap();
+        }
+    }
+
+    /**
+        Request a redraw by pushing it on to the event queue
+    */
+    final
+    void requestRedraw() {
+        SioEvent event;
+        event.target = wID;
+        event.type = SioEventType.window;
+        event.window.event = SioWindowEventID.redraw;
+
+        SioEventLoop.instance().pushEvent(event);
     }
 }
 
