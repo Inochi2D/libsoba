@@ -13,6 +13,7 @@ import soba.canvas.ctx;
 import cairo;
 import blend2d;
 import harfbuzz;
+import numem.all;
 
 public import soba.canvas.ctx;
 public import soba.canvas.pattern;
@@ -38,28 +39,25 @@ extern(C):
 
 /**
     Attempts to initialize soba canvas with one of the backends
+
+    Throws an exception if this fails.
 */
-bool cnvInit(SbCanvasBackend preferredBackend = SbCanvasBackend.blend2D) {
+void cnvInit(SbCanvasBackend preferredBackend = SbCanvasBackend.blend2D) {
+    enforce(cnvInitHarfbuzz(), nstring("Failed to initialize Harfbuzz!"));
 
     switch(preferredBackend) {
         default:
-            return false;
-
         case SbCanvasBackend.blend2D:
-            if (!cnvInitHarfbuzz()) return false;
-
             if (!cnvInitBlend2D()) {
-                return cnvInitCairo();
+                enforce(cnvInitCairo(), nstring("No vector rendering backend was found!"));
             }
-            return false;
+            break;
 
         case SbCanvasBackend.cairo:
-            if (!cnvInitHarfbuzz()) return false;
-
             if (!cnvInitCairo()) {
-                return cnvInitBlend2D();
+                enforce(cnvInitBlend2D(), nstring("No vector rendering backend was found!"));
             }
-            return false;
+            break;
     }
 }
 

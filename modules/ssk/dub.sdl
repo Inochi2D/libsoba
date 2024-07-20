@@ -8,7 +8,9 @@ license "BSD-2-Clause"
 dependency "numem" version="*"
 dependency "inmath" version="*"
 dependency "bindbc-opengl" version="*"
-dependency "soba:canvas" version="*" optional=true
+dependency "bindbc-gles" version="*"
+dependency "soba:sio" version="*"
+dependency "soba:canvas" version="*"
 
 targetPath "out/"
 targetName "ssk"

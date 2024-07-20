@@ -1,98 +1,58 @@
 module soba.ssk.texture;
-import soba.ssk.ctx;
-import numem.all;
-import inmath.linalg;
 
-enum SSKTextureFormat {
+enum SskTextureKind {
     /**
-        32-bit RGBA texture
+        Texture is an image updated from the CPU.
     */
-    rgba32,
-
+    image,
+    
     /**
-        32-bit ARGB texture
-
-        Also known as BGRA
+        Texture is a framebuffer rendered to by the GPU.
     */
-    argb32,
-
-    /**
-        32-bit RGB texture, alpha channel is ignored
-    */
-    rgb32,
-
-    /**
-        8-bit Red-only channel
-    */
-    r8,
+    framebuffer
 }
+
+enum SskTextureFormat {
+    /**
+        RGB texture
+    */
+    RGB,
+
+    /**
+        ARGB texture
+    */
+    ARGB,
+}
+
+/**
+    Reference to underlying texture
+*/
+alias SskTextureRef = void*;
 
 /**
     A texture
 */
 abstract
-class SSKTexture {
+class SskTexture {
 @nogc:
 private:
-    SSKContext ctx;
-    SSKTextureFormat fmt;
-
-protected:
-    /**
-        Width of the texture
-    */
-    uint width;
-
-    /**
-        Height of the texture
-    */
-    uint height;
+    SskTextureKind kind;
+    SskTextureFormat format;
 
 public:
+    this(SskTextureFormat format, SskTextureKind kind, uint width, uint height) {
+        this.kind = kind;
+        this.format = format;
 
-    this(SSKContext ctx, SSKTextureFormat fmt, uint width, uint height) {
-        this.ctx = ctx;
-        this.fmt = fmt;
-        this.width = width;
-        this.height = height;
+        // Discarded in this case.
+        _ = width;
+        _ = height;
     }
 
     /**
-        Gets the context this texture belongs to
+        Gets the render-api specific handle
     */
-    final
-    SSKContext getContext() {
-        return ctx;
-    }
-
-    /**
-        Gets the format of the texture
-    */
-    final
-    SSKTextureFormat getFormat() {
-        return fmt;
-    }
-
-    /**
-        Gets the width of the texture
-    */
-    final
-    uint getWidth() {
-        return width;
-    }
-
-    /**
-        Gets the height of the texture
-    */
-    final
-    uint getHeight() {
-        return height;
-    }
-
-    /**
-        Gets the underlying texture handle
-    */
-    abstract void* getHandle();
+    abstract SskTextureRef getHandle();
 
     /**
         Resizes the texture
@@ -100,7 +60,35 @@ public:
     abstract void resize(uint width, uint height);
 
     /**
-        Blits texture data on to the texture
+        Gets the width of the texture
     */
-    abstract void blit(ubyte* data, SSKTextureFormat fmt, uint width, uint height, uint stride);
+    abstract uint getWidth();
+
+    /**
+        Gets the height of the texture
+    */
+    abstract uint getHeight();
+
+    /**
+        Gets the format of the texture
+    */
+    final
+    SskTextureFormat getFormat() {
+        return format;
+    }
+
+    /**
+        Gets the kind of texture
+    */
+    final
+    SskTextureKind getKind() {
+        return kind;
+    }
+
+    /**
+        Upload texture data
+
+        Only available on image textures.
+    */
+    abstract void upload(SskTextureFormat format, ubyte[] data, uint width, uint height);
 }

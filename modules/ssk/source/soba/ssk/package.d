@@ -10,9 +10,6 @@
 */
 module soba.ssk;
 
-public import soba.ssk.ctx;
-public import soba.ssk.ex;
-public import soba.ssk.appl;
-public import soba.ssk.node;
-public import soba.ssk.nodes;
+public import soba.ssk.scene;
+public import soba.ssk.surfaces;
 public import soba.ssk.texture;

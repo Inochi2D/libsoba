@@ -1,3 +1,10 @@
+/*
+    Copyright © 2024, Inochi2D Project
+    Distributed under the 2-Clause BSD License, see LICENSE file.
+    
+    Authors: Luna Nielsen
+*/
+
 module soba.sio.window;
 import numem.all;
 import bindbc.sdl;
@@ -469,6 +476,22 @@ public:
     final
     void focus() {
         SDL_RaiseWindow(handle);
+    }
+
+    /**
+        Makes OpenGL(ES) context current for this window
+
+        Does nothing on Metal
+    */
+    final
+    void makeCurrent() {
+        final switch(surfaceInfo.type) {
+            case SioWindowSurfaceType.GL:
+            case SioWindowSurfaceType.GLES:
+                SDL_GL_MakeCurrent(handle, cast(SDL_GLContext)surfaceHandle);
+                break;
+            case SioWindowSurfaceType.metal: break;
+        }
     }
 
     /**

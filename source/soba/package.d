@@ -12,3 +12,5 @@ import cairo;
 import std.exception;
 
 public import soba.core;
+public import soba.sio.events;
+public import soba.canvas;

@@ -7,22 +7,21 @@
 module soba.core;
 
 public import soba.core.app;
-public import soba.core.events;
 public import soba.core.math;
 
 import bindbc.sdl;
-import cairo;
 import numem.all;
+
+import soba.sio;
+import soba.ssk;
+import soba.canvas;
 
 /**
     Initialize Soba
+
+    Throws a NuException if any of Soba's required submodules fail to load.
 */
-void sbInit() {
-    auto sdlSupport = loadSDL();
-    if (sdlSupport == SDLSupport.noLibrary)
-        throw nogc_new!Exception("Could not find a valid SDL2 library!");
-
-    SDL_Init(SDL_INIT_EVERYTHING);
-
-    loadCairo();
+void sbInit(SbCanvasBackend backend = SbCanvasBackend.blend2D) {
+    sioInit();
+    cnvInit(backend);
 }

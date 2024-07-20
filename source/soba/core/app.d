@@ -5,13 +5,10 @@
     Authors: Luna Nielsen
 */
 module soba.core.app;
-import soba.core.events;
-import soba.widgets.window.mainwindow;
 import numem.all;
 import numem.mem.map;
 import cairo;
 import bindbc.sdl;
-import soba.core.window;
 
 @nogc:
 
@@ -30,15 +27,13 @@ class SbApplication {
 nothrow @nogc:
 private:
     SbAppInfo appInfo;
-    SbMainWindow rootWindow;
-    SbEventLoop eventLoop;
+    // SbMainWindow rootWindow;
 
 public:
     ~this() {
         nogc_delete(appInfo.name);
         nogc_delete(appInfo.version_);
-        nogc_delete(rootWindow);
-        nogc_delete(eventLoop);
+        // nogc_delete(rootWindow);
     }
 
     /**
@@ -46,27 +41,26 @@ public:
     */
     this(SbAppInfo appInfo) {
         this.appInfo = appInfo;
-        eventLoop = nogc_new!SbEventLoop();
     }
 
     /**
         Runs the application
     */
-    void run(SbMainWindow rootWindow) {
-        this.rootWindow = rootWindow;
-        rootWindow.show();
-        try {
+    void run() {
+        // this.rootWindow = rootWindow;
+        // rootWindow.show();
+        // try {
 
-            /// Pump event queue while the root window is meant to run.
-            while(!rootWindow.isCloseRequested()) {
-                if (eventLoop.update()) break;
-            }
-        } catch(Exception ex) {
-            import core.stdc.stdio : printf;
-            nstring str = ex.msg;
-            printf("FATAL ERROR: %s\n", str.toCString());
-            nogc_delete(ex);
-        }
+        //     /// Pump event queue while the root window is meant to run.
+        //     while(!rootWindow.isCloseRequested()) {
+        //         if (eventLoop.update()) break;
+        //     }
+        // } catch(Exception ex) {
+        //     import core.stdc.stdio : printf;
+        //     nstring str = ex.msg;
+        //     printf("FATAL ERROR: %s\n", str.toCString());
+        //     nogc_delete(ex);
+        // }
     }
 
     /**
