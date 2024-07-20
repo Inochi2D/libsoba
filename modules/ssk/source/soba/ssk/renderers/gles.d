@@ -42,18 +42,78 @@ public:
     }
 }
 
+
 class SskGLESTexture : SskTexture {
 @nogc:
 private:
     GLuint handle;
+    GLuint fbTexHandle;
+
     uint width, height;
 
+    void create() {
+        if (this.getKind() == SskTextureKind.image) {
+            glGenTextures(1, &handle);
+            glBindTexture(GL_TEXTURE_2D, handle);
+            glTexImage2D(
+                GL_TEXTURE_2D,
+                0,
+                GL_RGBA,
+                width,
+                height,
+                0,
+                this.getFormat() == SskTextureFormat.RGB ? GL_RGB : GL_RGBA,
+                GL_UNSIGNED_BYTE,
+                null
+            );
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  
+
+        } else {
+            glGenTextures(1, &fbTexHandle);
+            glGenFramebuffers(1, &handle);
+
+            glBindTexture(GL_TEXTURE_2D, handle);
+            glTexImage2D(
+                GL_TEXTURE_2D,
+                0,
+                GL_RGBA,
+                width,
+                height,
+                0,
+                GL_RGBA,
+                GL_UNSIGNED_BYTE,
+                null
+            );
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
+
+            glBindFramebuffer(GL_FRAMEBUFFER, handle);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbTexHandle, 0);
+        }
+    }
+
 public:
+    ~this() {
+        final switch(this.getKind()) {
+            case SskTextureKind.image:
+                glDeleteTextures(1, &handle);
+                break;
+
+            case SskTextureKind.framebuffer:
+                glDeleteFramebuffers(1, &handle);
+                glDeleteTextures(1, &fbTexHandle);
+                break;
+        }
+    }
+
     this(SskTextureFormat format, SskTextureKind kind, uint width, uint height) {
         super(format, kind, width, height);
 
         this.width = width;
         this.height = height;
+
+        this.create();
     }
 
     /**
@@ -71,6 +131,19 @@ public:
     void resize(uint width, uint height) {
         this.width = width;
         this.height = height;
+
+        glBindTexture(GL_TEXTURE_2D, this.getKind() == SskTextureKind.framebuffer ? fbTexHandle : handle);
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGBA,
+            width,
+            height,
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            null
+        );
     }
 
     /**
@@ -91,6 +164,22 @@ public:
 
     override
     void upload(SskTextureFormat format, ubyte[] data, uint width, uint height) {
+        if (this.getKind() == SskTextureKind.image) {
+            glBindTexture(GL_TEXTURE_2D, handle);
+            glTexImage2D(
+                GL_TEXTURE_2D,
+                0,
+                GL_RGBA,
+                width,
+                height,
+                0,
+                GL_RGBA,
+                GL_UNSIGNED_BYTE,
+                null
+            );
 
+            glGenerateMipmap(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
     }
 }
