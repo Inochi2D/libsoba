@@ -150,6 +150,16 @@ public:
     }
 
     /**
+        Gets the bounds of the surface in rendering space.
+    */
+    recti getRenderBounds() {
+        if (parent) {
+            return parent.getRenderBounds();
+        }
+        return bounds;
+    }
+
+    /**
         Sets the bounds of the surface relative to parent surface.
     */
     void setBounds(recti bounds) {
@@ -163,14 +173,16 @@ public:
     void renderAll(SskRenderer renderer) {
         renderer.setScissor(this.getBounds());
 
-        if (dirty) {
-            render(renderer);
-            dirty = false;
-        }
+        preRender();
+            if (dirty) {
+                render(renderer);
+                dirty = false;
+            }
 
-        foreach(child; children) {
-            child.renderAll(renderer);
-        }
+            foreach(child; children) {
+                child.renderAll(renderer);
+            }
+        postRender();
     }
 
     /**
@@ -182,7 +194,17 @@ public:
     }
 
     /**
+        Called before rendering begins for this and child elements
+    */
+    void preRender() { }
+
+    /**
         The rendering function of this surface
     */
     void render(SskRenderer renderer) { }
+    
+    /**
+        Called after rendering ends for this and child elements
+    */
+    void postRender() { }
 }

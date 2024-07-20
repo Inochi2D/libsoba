@@ -81,6 +81,16 @@ public:
         );
     }
 
+    override
+    recti getRenderBounds() {
+        return recti(
+            0,
+            0,
+            image.getWidth(),
+            image.getHeight()
+        );
+    }
+
     /**
         Begins rendering to the surface
     */
