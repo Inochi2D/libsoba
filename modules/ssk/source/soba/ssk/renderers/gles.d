@@ -158,7 +158,6 @@ public:
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_SCISSOR_TEST);
         glEnable(GL_BLEND);
-        glBlendEquation(GL_FUNC_ADD);
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     }
 

@@ -18,7 +18,47 @@ private:
     SbContext context;
     SskTexture texture;
 
+    void tryUpload() {
+        auto lock = image.acquire();
+        if(lock) {
+            texture.upload(image.getFormat().fromImageFormat(), lock.data[0..lock.dataLength], lock.width, lock.height);
+            image.release(lock);
+            this.markDirty();
+        }
+    }
+
+protected:
+
+    /**
+        Called when reparenting to a new scene
+
+        The scene change is first applied *after* this function is called
+        So you may refer to the old scene via getScene()
+    */
+    override
+    void onSceneChanged(SskScene newScene) {
+
+        // Delete old texture belonging to old scene
+        nogc_delete(this.texture);
+
+        // Create a new texture
+        this.texture = newScene.getRenderer().createTexture(
+            image.getFormat().fromImageFormat(),
+            SskTextureKind.image,
+            image.getWidth(),
+            image.getWidth()
+        );
+
+        this.tryUpload();
+    }
+
 public:
+    ~this() {
+        nogc_delete(texture);
+        nogc_delete(context);
+        nogc_delete(image);
+    }
+
     /**
         Creates a surface
     */
@@ -34,7 +74,7 @@ public:
         this.image = nogc_new!SbImage(width, height, 4);
         this.context = SbContext.create();
         this.texture = scene.getRenderer().createTexture(
-            SskTextureFormat.BGRA,
+            image.getFormat().fromImageFormat(),
             SskTextureKind.image,
             width,
             height
@@ -54,10 +94,7 @@ public:
     */
     void end() {
         context.end();
-        auto lock = image.acquire();
-        texture.upload(image.getFormat().fromImageFormat(), lock.data[0..lock.dataLength], lock.width, lock.height);
-        image.release(lock);
-        this.markDirty();
+        this.tryUpload();
     }
 
     override

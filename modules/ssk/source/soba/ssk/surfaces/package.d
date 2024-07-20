@@ -18,13 +18,41 @@ private:
     SskSurface parent;
     weak_vector!SskSurface children;
 
+
+    void propagateSceneChange(SskScene scene) {
+        this.onSceneChanged(scene);
+        this.scene = scene;
+
+        foreach(child; children) {
+            child.propagateSceneChange(scene);
+        }    
+    }
+
 protected:
+    /**
+        Surface dirty flag
+    */
     bool dirty;
+
+    /**
+        The raw surface bounds
+    */
     recti bounds;
 
+    /**
+        Gets the scene this surface is attached to
+    */
     SskScene getScene() {
         return scene;
     }
+
+    /**
+        Called when reparenting to a new scene
+
+        The scene change is first applied *after* this function is called
+        So you may refer to the old scene via getScene()
+    */
+    void onSceneChanged(SskScene newScene) { }
 
 public:
     this(SskScene scene) {
@@ -73,7 +101,7 @@ public:
         // Resources might not transfer between scenes,
         // as such, we block this.
         if (child.scene !is scene) {
-            return;
+            child.propagateSceneChange(scene);
         }
 
         // Remove child from their prior parent
