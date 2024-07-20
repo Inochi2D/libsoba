@@ -9,6 +9,7 @@ import soba.canvas.image;
     A surface consisting of a texture
 */
 class SskImageSurface : SskSurface {
+@nogc:
 private:
     SbImage image;
 

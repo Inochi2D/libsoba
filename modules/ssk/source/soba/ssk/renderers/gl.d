@@ -7,15 +7,134 @@ import inmath;
 
 import bindbc.opengl;
 
+enum sskBaseVtxShaderGL = "
+#version 330
+uniform mat4 mvp;
+
+layout(location = 0) in vec2 vtxIn;
+layout(location = 1) in vec2 uvIn;
+
+out vec2 uvOut;
+
+void main() {
+    gl_Position = mvp * vec4(vtxIn.x, vtxIn.y, 0, 1);
+    uvOut = uvIn;
+}\0";
+
+enum sskBaseFragShaderGL = "
+#version 330
+in vec2 uvOut;
+
+uniform sampler2D texIn;
+
+layout(location = 0) out vec4 colorOut;
+
+void main() {
+    colorOut = texture(texIn, uvOut);
+}\0";
+
 class SskGLRenderer : SskRenderer {
 @nogc:
+private:
+    GLuint vao;
+    GLuint vbo;
+
+    GLuint program;
+
+    GLuint createShader(GLenum type, const(char)* code) {
+        GLuint shader = glCreateShader(type);
+        glShaderSource(shader, 1, &code, null);
+        glCompileShader(shader);
+
+        int success;
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+        if (!success) {
+            int logLen;
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
+
+            nstring errText;
+            errText.resize(logLen);
+
+            glGetShaderInfoLog(shader, logLen, null, cast(char*)errText.ptr);
+            throw nogc_new!NuException(errText);
+        }
+
+        return shader;
+    }
+
+    GLuint createShaderProgram(const(char)* vtx, const(char)* frag) {
+        GLuint vtxShader = createShader(GL_VERTEX_SHADER, vtx);
+        GLuint fragShader = createShader(GL_FRAGMENT_SHADER, frag);
+
+        GLuint prog = glCreateProgram();
+        glAttachShader(prog, vtxShader);
+        glAttachShader(prog, fragShader);
+        glLinkProgram(prog);
+
+        // Should be linked by now.
+        // Which means we can free these.
+        glDeleteShader(vtxShader);
+        glDeleteShader(fragShader);
+
+        int success;
+        glGetProgramiv(prog, GL_LINK_STATUS, &success);
+        if (!success) {
+
+            int logLen;
+            glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &logLen);
+
+            nstring errText;
+            errText.resize(logLen);
+
+            glGetProgramInfoLog(prog, logLen, null, cast(char*)errText.ptr);
+            throw nogc_new!NuException(errText);
+        }
+
+        return prog;
+    }
+
+    void initState() {
+        glGenBuffers(1, &vbo);
+        glGenVertexArrays(1, &vao);
+
+        glBindVertexArray(vao);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(
+            0,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            float.sizeof*4,
+            cast(void*)0
+        );
+        glVertexAttribPointer(
+            1,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            float.sizeof*4,
+            cast(void*)8
+        );
+
+        program = createShaderProgram(sskBaseVtxShaderGL, sskBaseFragShaderGL);
+        glBufferData(GL_ARRAY_BUFFER, vec2.sizeof*12, null, GL_DYNAMIC_DRAW);
+    }
+
 public:
+
+    ~this() {
+        glDeleteBuffers(1, &vbo);
+        glDeleteProgram(program);
+    }
     
     this(SioWindow window) {
         super(window);
 
         window.makeCurrent();
         enforce(loadOpenGL() != GLSupport.noLibrary, nstring("Failed to establish OpenGL context."));
+    
+        this.initState();
     }
 
     override
@@ -28,6 +147,7 @@ public:
     void begin() {
         this.getWindow().makeCurrent();
         glEnable(GL_SCISSOR_TEST);
+        glBindVertexArray(vao);
     }
 
     override
@@ -41,6 +161,44 @@ public:
         this.getWindow().makeCurrent();
         vec2i wsize = this.getWindow().getFramebufferSize();
         glScissor(scissor.left, wsize.y-scissor.y, scissor.width, scissor.height);
+    }
+
+    /**
+        Renders texture to the specified area
+    */
+    override
+    void renderTextureTo(SskTexture texture, recti at) {
+        vec2[12] vtxData = [
+            vec2(at.left, at.top),
+            vec2(0, 0),
+            vec2(at.left, at.bottom),
+            vec2(0, 1),
+            vec2(at.right, at.top),
+            vec2(1, 0),
+            vec2(at.right, at.top),
+            vec2(1, 0),
+            vec2(at.left, at.bottom),
+            vec2(0, 1),
+            vec2(at.right, at.bottom),
+            vec2(1, 1),
+        ];
+        
+        glBindVertexArray(vao);
+        glBindBuffer(vbo, GL_ARRAY_BUFFER);
+        glBindTexture(GL_TEXTURE_2D, cast(GLuint)texture.getHandle());
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vec2.sizeof*vtxData.length, vtxData.ptr);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+
+    /**
+        Sets texture to render target.
+        Type of texture MUST be framebuffer.
+
+        Set to null to render to the window once again.
+    */
+    override
+    void renderToTexture(SskTexture texture) {
+
     }
 }
 
@@ -91,6 +249,9 @@ private:
 
             glBindFramebuffer(GL_FRAMEBUFFER, handle);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbTexHandle, 0);
+        
+            // Back to default.
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
     }
 

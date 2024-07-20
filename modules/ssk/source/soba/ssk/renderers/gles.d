@@ -8,8 +8,92 @@ import inmath;
 
 import bindbc.gles.gles;
 
+
+enum sskBaseVtxShaderGLES = "
+#version 100
+uniform mat4 mvp;
+
+layout(location = 0) in vec2 vtxIn;
+layout(location = 1) in vec2 uvIn;
+
+out vec2 uvOut;
+
+void main() {
+    gl_Position = mvp * vec4(vtxIn.x, vtxIn.y, 0, 1);
+    uvOut = uvIn;
+}\0";
+
+enum sskBaseFragShaderGLES = "
+#version 100
+in vec2 uvOut;
+
+uniform sampler2D texIn;
+
+layout(location = 0) out vec4 colorOut;
+
+void main() {
+    colorOut = texture(texIn, uvOut);
+}\0";
+
 class SskGLESRenderer : SskRenderer {
 @nogc:
+private:
+    GLuint vao;
+    GLuint vbo;
+
+    GLuint program;
+    
+    GLuint createShader(GLenum type, const(char)* code) {
+        GLuint shader = glCreateShader(type);
+        glShaderSource(shader, 1, &code, null);
+        glCompileShader(shader);
+
+        int success;
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+        if (!success) {
+            int logLen;
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
+
+            nstring errText;
+            errText.resize(logLen);
+
+            glGetShaderInfoLog(shader, logLen, null, cast(char*)errText.ptr);
+            throw nogc_new!NuException(errText);
+        }
+
+        return shader;
+    }
+
+    GLuint createShaderProgram(const(char)* vtx, const(char)* frag) {
+        GLuint vtxShader = createShader(GL_VERTEX_SHADER, vtx);
+        GLuint fragShader = createShader(GL_FRAGMENT_SHADER, frag);
+
+        GLuint prog = glCreateProgram();
+        glAttachShader(prog, vtxShader);
+        glAttachShader(prog, fragShader);
+        glLinkProgram(prog);
+
+        // Should be linked by now.
+        // Which means we can free these.
+        glDeleteShader(vtxShader);
+        glDeleteShader(fragShader);
+
+        int success;
+        glGetProgramiv(prog, GL_LINK_STATUS, &success);
+        if (!success) {
+
+            int logLen;
+            glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &logLen);
+
+            nstring errText;
+            errText.resize(logLen);
+
+            glGetProgramInfoLog(prog, logLen, null, cast(char*)errText.ptr);
+            throw nogc_new!NuException(errText);
+        }
+
+        return prog;
+    }
 public:
     this(SioWindow window) {
         super(window);
@@ -18,6 +102,10 @@ public:
         // NOTE: For some reason the dev of this binding didn't make it nogc??
         auto esLoader = assumeNothrowNoGC(&loadGLES);
         enforce(esLoader() != GLESSupport.noLibrary, nstring("Failed to establish OpenGL ES context."));
+    
+        glGenBuffers(1, &vbo);
+        glGenVertexArrays(1, &vao);
+        program = createShaderProgram(sskBaseVtxShaderGLES, sskBaseFragShaderGLES);
     }
 
     override
@@ -39,6 +127,25 @@ public:
     void setScissor(recti scissor) {
         vec2i wsize = this.getWindow().getFramebufferSize();
         glScissor(scissor.left, wsize.y-scissor.y, scissor.width, scissor.height);
+    }
+
+    /**
+        Renders texture to the specified area
+    */
+    override
+    void renderTextureTo(SskTexture texture, recti at) {
+
+    }
+
+    /**
+        Sets texture to render target.
+        Type of texture MUST be framebuffer.
+
+        Set to null to render to the window once again.
+    */
+    override
+    void renderToTexture(SskTexture texture) {
+
     }
 }
 

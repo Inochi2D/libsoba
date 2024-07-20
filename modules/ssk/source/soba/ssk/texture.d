@@ -1,4 +1,7 @@
 module soba.ssk.texture;
+import soba.canvas.image;
+
+@nogc:
 
 enum SskTextureKind {
     /**
@@ -14,14 +17,29 @@ enum SskTextureKind {
 
 enum SskTextureFormat {
     /**
+        No or invalid texture format
+    */
+    None,
+
+    /**
         RGB texture
     */
     RGB,
 
     /**
-        ARGB texture
+        BGRA texture
     */
-    ARGB,
+    BGRA,
+}
+
+SskTextureFormat fromImageFormat(SbImageFormat fmt) {
+    switch(fmt) {
+        default: return SskTextureFormat.None;
+        case SbImageFormat.RGB32:
+            return SskTextureFormat.RGB;
+        case SbImageFormat.RGBA32:
+            return SskTextureFormat.BGRA;
+    }
 }
 
 /**

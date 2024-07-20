@@ -56,6 +56,19 @@ public:
         Ends rendering pass
     */
     abstract void end();
+
+    /**
+        Renders texture to the specified area
+    */
+    abstract void renderTextureTo(SskTexture texture, recti at);
+
+    /**
+        Sets texture to render target.
+        Type of texture MUST be framebuffer.
+
+        Set to null to render to the window once again.
+    */
+    abstract void renderToTexture(SskTexture texture);
 }
 
 SskRenderer sskCreateRendererFor(SioWindow window) {
