@@ -287,6 +287,10 @@ private:
     }
 
     void createWindow(SioWindowCreateInfo info) {
+        this.title = info.title;
+        this.wStyle = info.windowStyle;
+        this.surfaceInfo = info.surfaceInfo;
+        
         SDL_WindowFlags flags = this.setupWindowFlags(info);
 
         handle = SDL_CreateWindow(title.toCString(), info.x, info.y, info.width, info.height, flags);
@@ -294,9 +298,6 @@ private:
         enforce(this.setupSurface(handle, info.surfaceInfo.type), nstring("Rendering context creation failed!"));
 
         this.wID = SDL_GetWindowID(handle);
-        this.title = info.title;
-        this.wStyle = info.windowStyle;
-        this.surfaceInfo = info.surfaceInfo;
     }
 
     // Events
