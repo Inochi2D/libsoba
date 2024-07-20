@@ -1,5 +1,8 @@
 module soba.ssk.surfaces.image;
 import soba.ssk.surfaces;
+import soba.ssk.scene;
+import inmath;
+
 import soba.canvas.image;
 
 /**
@@ -10,8 +13,8 @@ private:
     SbImage image;
 
 public:
-    this(SbImage image) {
-        super();
+    this(SskScene scene, SbImage image) {
+        super(scene);
         this.image = image;
         this.bounds = recti(
             0,

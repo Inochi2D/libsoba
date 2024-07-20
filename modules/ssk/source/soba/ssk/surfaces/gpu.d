@@ -4,8 +4,8 @@ import soba.ssk.surfaces;
 /**
     A framebuffer layer surface 
 */
-class SskRenderSurface : SskSurface {
+// class SskRenderSurface : SskSurface {
 
-}
+// }
 
 

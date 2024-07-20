@@ -43,10 +43,6 @@ public:
     this(SskTextureFormat format, SskTextureKind kind, uint width, uint height) {
         this.kind = kind;
         this.format = format;
-
-        // Discarded in this case.
-        _ = width;
-        _ = height;
     }
 
     /**

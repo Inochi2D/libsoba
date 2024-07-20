@@ -1,4 +1,5 @@
 module soba.ssk.surfaces;
+import soba.ssk.renderers;
 import soba.ssk.scene;
 import numem.all;
 import inmath;
@@ -46,6 +47,14 @@ public:
     SskSurface[] getChildren() {
         return children[0..$];
     }
+    
+    /**
+        Gets the parent of this surface
+    */
+    final
+    SskSurface getParent() {
+        return parent;
+    }
 
     /**
         Adds a child to this surface
@@ -67,7 +76,7 @@ public:
 
         // Remove child from their prior parent
         if (child.parent) {
-            children.parent.removeChild(child);
+            child.parent.removeChild(child);
         }
 
         // Add child and set their parent to us.
@@ -121,7 +130,7 @@ public:
         Draws the surface and any child surfaces (if dirty)
     */
     final
-    void draw() {
+    void renderAll() {
         if (dirty) {
             render(this.getScene().getRenderer());
             dirty = false;
@@ -130,7 +139,7 @@ public:
         this.getScene().getRenderer().setScissor(this.getBounds());
 
         foreach(child; children) {
-            child.draw();
+            child.renderAll();
         }
     }
 

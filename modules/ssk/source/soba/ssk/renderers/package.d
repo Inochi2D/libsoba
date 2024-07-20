@@ -1,10 +1,14 @@
 module soba.ssk.renderers;
+import soba.ssk.texture;
 import soba.sio;
 import numem.all;
+import inmath;
 
 import soba.ssk.renderers.gl;
 import soba.ssk.renderers.gles;
 version(SbApple) import soba.ssk.renderers.metal;
+
+@nogc:
 
 /**
     Soba Scene Kit renderer interface
@@ -36,12 +40,22 @@ public:
     /**
         Creates a new texture
     */
-    abstract SskTexture createTexture();
+    abstract SskTexture createTexture(SskTextureFormat format, SskTextureKind kind, uint width, uint height);
 
     /**
         Sets the scissor rectangle
     */
     abstract void setScissor(recti scissor);
+
+    /**
+        Begins rendering pass
+    */
+    abstract void begin();
+
+    /**
+        Ends rendering pass
+    */
+    abstract void end();
 }
 
 SskRenderer sskCreateRendererFor(SioWindow window) {

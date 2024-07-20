@@ -6,9 +6,9 @@
 */
 
 module soba.ssk.scene;
-import soba.ssk.surface;
 import soba.sio;
 import soba.ssk.renderers;
+import soba.ssk.surfaces;
 import numem.all;
 
 /**
@@ -16,6 +16,7 @@ import numem.all;
 */
 final
 class SskScene {
+@nogc:
 private:
     SioWindow window;
     SskSurface root;
@@ -43,7 +44,7 @@ package(soba.ssk):
                 if (surface is qsurface) return;
             }
 
-            p = p.parent;
+            p = p.getParent();
         }
 
         enqueued ~= surface;
@@ -81,6 +82,6 @@ public:
         Redraws dirty parts of the scene
     */
     void redraw() {
-
+        root.renderAll();
     }
 }
