@@ -398,6 +398,24 @@ public:
     }
 
     /**
+        Gets the size of the window in pixels
+    */
+    vec2i getFramebufferSize() {
+        vec2i ret;
+        SDL_GetWindowSizeInPixels(handle, &ret.vector[0], &ret.vector[1]);
+        return ret;
+    }
+
+    /**
+        Gets the size of the window in screen units
+    */
+    vec2i getWindowSize() {
+        vec2i ret;
+        SDL_GetWindowSize(handle, &ret.vector[0], &ret.vector[1]);
+        return ret;
+    }
+
+    /**
         Gets the title of the window
     */
     final
