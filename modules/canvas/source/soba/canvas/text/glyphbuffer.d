@@ -9,9 +9,12 @@ module soba.canvas.text.glyphbuffer;
 import soba.canvas.text.font;
 import harfbuzz;
 import numem.all;
+import inmath;
 
 /// GlyphId of the character
 alias SbGlyphId = uint;
+
+@nogc:
 
 /**
     Text shaping direction
@@ -38,6 +41,41 @@ enum SbTextDirection : uint {
         Bottom-to-top
     */
     btt
+}
+
+/**
+    Gets whether the direction is horizontal
+*/
+bool isHorizontal(SbTextDirection direction) {
+    return (((cast(uint)direction) & ~1U) == 4);
+}
+
+/**
+    Gets whether the direction is vertical
+*/
+bool isVertical(SbTextDirection direction) {
+    return (((cast(uint)direction) & ~1U) == 6);
+}
+
+/**
+    Gets whether the direction is forward
+*/
+bool isForward(SbTextDirection direction) {
+    return (((cast(uint)direction) & ~2U) == 4);
+}
+
+/**
+    Gets whether the direction is backward
+*/
+bool isBackward(SbTextDirection direction) {
+    return (((cast(uint)direction) & ~2U) == 5);
+}
+
+/**
+    Reverses the given text direction
+*/
+SbTextDirection reverse(SbTextDirection direction) {
+    return cast(SbTextDirection)((cast(uint)direction) ^ 1);
 }
 
 /**
@@ -155,10 +193,14 @@ public:
         hb_glyph_info_t *glyph_info     = hb_buffer_get_glyph_infos(buf, &count);
         hb_glyph_position_t *glyph_pos  = hb_buffer_get_glyph_positions(buf, &count);
         
+        SbTextDirection direction = this.getDirection();
         float tracking = font.getTracking();
-        float baselineOffset = font.getBaseline();
+        int offsetY = cast(int)font.getBaseline();
 
-        shaped.resize(count);
+        if (direction.isForward() && font.getTopLeftOrigin()) {
+            offsetY += cast(int)font.getSize();
+        }
+
         foreach(i; 0..count) {
             float xadvance = glyph_pos[i].x_advance*tracking;
             float yadvance = -glyph_pos[i].y_advance;
@@ -169,9 +211,9 @@ public:
             glyph.yAdvance = cast(int)yadvance;
             
             glyph.xOffset = glyph_pos[i].x_offset;
-            glyph.yOffset = (glyph_pos[i].y_offset+cast(int)baselineOffset);
+            glyph.yOffset = (glyph_pos[i].y_offset-offsetY);
 
-            shaped[i] = glyph;
+            shaped ~= glyph;
         }
     }
 

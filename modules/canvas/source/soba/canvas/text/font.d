@@ -45,6 +45,7 @@ private:
     bool doGrading;
     float scaleFactor = 64.0;
 
+    bool topLeftOrigin = true;
     float tracking = 1;
     float baseline = 0;
 
@@ -164,6 +165,21 @@ public:
     }
 
     /**
+        Gets whether the font's origin should be on its reported "top left"
+    */
+    final
+    bool getTopLeftOrigin() nothrow {
+        return topLeftOrigin;
+    }
+
+    /**
+        Sets whether the font's origin should be on its reported "top left"
+    */
+    void setTopLeftOrigin(bool origin) nothrow {
+        this.topLeftOrigin = origin;
+    }
+
+    /**
         Gets the font underline
     */
     final
@@ -216,6 +232,43 @@ public:
         this.setBoldness(this.getBoldness());
     }
 
+    /**
+        Gets the pixels-per-em of the font
+    */
+    final
+    vec2i getPpem() {
+        vec2i ppem;
+        hb_font_get_ppem(font, cast(uint*)&ppem.vector[0], cast(uint*)&ppem.vector[1]);
+        return ppem;
+    }
+
+    /**
+        Sets the pixels-per-em of the font
+    */
+    final
+    void setPpem(vec2i ppem) {
+        hb_font_set_ppem(font, ppem.x, ppem.y);
+    }
+
+    /**
+        Gets the point size of the font
+    */
+    final
+    float getPointSize() {
+        return hb_font_get_ptem(font);
+    }
+
+    /**
+        Sets the point size of the font
+    */
+    final
+    void setPointSize(float ptem) {
+        hb_font_set_ptem(font, ptem);
+    }
+
+    /**
+        Gets the vertical extents of the font
+    */
     final
     SbFontExtents getVerticalExtents() {
         hb_font_extents_t ext;
@@ -223,6 +276,9 @@ public:
         return SbFontExtents(ext.ascender, ext.descender, ext.line_gap);
     }
 
+    /**
+        Gets the horizontal extents of the font
+    */
     final
     SbFontExtents getHorizontalExtents() {
         hb_font_extents_t ext;
@@ -230,6 +286,9 @@ public:
         return SbFontExtents(ext.ascender, ext.descender, ext.line_gap);
     }
 
+    /**
+        Gets the glyph extents of the specified codepoint
+    */
     final
     SbGlyphExtents getGlyphExtents(uint codepoint) {
         hb_glyph_extents_t extents;
