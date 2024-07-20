@@ -21,6 +21,7 @@ import soba.canvas;
 
     Throws a NuException if any of Soba's required submodules fail to load.
 */
+@nogc
 void sbInit(SbCanvasBackend backend = SbCanvasBackend.blend2D) {
     sioInit();
     cnvInit(backend);

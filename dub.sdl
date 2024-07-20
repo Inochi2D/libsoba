@@ -26,7 +26,7 @@ subPackage "modules/sio"
 // Apple platform builds
 configuration "apple" {
 	platforms "osx" "ios"
-	targetType "executable"
+	targetType "library"
 	versions "SbApple"
 
 	subConfiguration "soba:ssk" "apple"
@@ -40,12 +40,16 @@ configuration "apple" {
 // Builds for Windows (Console-less)
 configuration "win32" {
 	platforms "windows"
-	targetType "executable"
+	targetType "library"
 	versions "SbWindows"
 }
 
 // Builds for every other platform
 configuration "portable" {
-	targetType "autodetect"
+	targetType "library"
 	subConfiguration "soba:ssk" "portable"
+}
+
+configuration "demo" {
+	targetType "executable"
 }

@@ -5,10 +5,12 @@
     Authors: Luna Nielsen
 */
 module soba.core.app;
+import soba.core;
 import numem.all;
 import numem.mem.map;
 import cairo;
 import bindbc.sdl;
+import soba.sio;
 
 @nogc:
 
@@ -24,7 +26,7 @@ struct SbAppInfo {
     Instance of the application.
 */
 class SbApplication {
-nothrow @nogc:
+@nogc:
 private:
     SbAppInfo appInfo;
     // SbMainWindow rootWindow;
@@ -47,20 +49,20 @@ public:
         Runs the application
     */
     void run() {
-        // this.rootWindow = rootWindow;
-        // rootWindow.show();
-        // try {
+        try {
+            sbInit();
 
-        //     /// Pump event queue while the root window is meant to run.
-        //     while(!rootWindow.isCloseRequested()) {
-        //         if (eventLoop.update()) break;
-        //     }
-        // } catch(Exception ex) {
-        //     import core.stdc.stdio : printf;
-        //     nstring str = ex.msg;
-        //     printf("FATAL ERROR: %s\n", str.toCString());
-        //     nogc_delete(ex);
-        // }
+            /// Pump event queue while the root window is meant to run.
+            while(SioEventLoop.instance().hasHandlers()) {
+                SioEventLoop.instance().pumpEvents();
+            }
+        } catch(NuException ex) {
+            import core.stdc.stdio : printf;
+            nstring str = ex.msg;
+            printf("FATAL ERROR: %s\n", str.toCString());
+            nogc_delete(ex);
+            
+        }
     }
 
     /**
