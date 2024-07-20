@@ -10,6 +10,7 @@ import soba.sio;
 import soba.ssk.renderers;
 import soba.ssk.surfaces;
 import numem.all;
+import inmath;
 
 /**
     The "scene" being drawn to
@@ -62,6 +63,8 @@ public:
     this(SioWindow window) {
         this.window = window;
         this.renderer = sskCreateRendererFor(window);
+
+        this.root = nogc_new!SskSurface(this);
     }
 
     /**
@@ -82,6 +85,18 @@ public:
         Redraws dirty parts of the scene
     */
     void redraw() {
-        root.renderAll();
+        vec2i fbSize = window.getFramebufferSize();
+        root.setBounds(recti(
+            0, 
+            0,
+            fbSize.x,
+            fbSize.y
+        ));
+
+        renderer.begin();
+            root.renderAll(renderer);
+        renderer.end();
+
+        window.swap();
     }
 }

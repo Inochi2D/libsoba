@@ -8,21 +8,24 @@ import inmath;
 import bindbc.opengl;
 
 enum sskBaseVtxShaderGL = "
-#version 330
-uniform mat4 mvp;
+#version 150 core
+#extension GL_ARB_explicit_attrib_location : enable
 
 layout(location = 0) in vec2 vtxIn;
 layout(location = 1) in vec2 uvIn;
 
+uniform mat4 mvp;
+
 out vec2 uvOut;
 
 void main() {
-    gl_Position = mvp * vec4(vtxIn.x, vtxIn.y, 0, 1);
+    gl_Position = mvp * vec4(vtxIn.x, vtxIn.y, -10, 1);
     uvOut = uvIn;
 }\0";
 
 enum sskBaseFragShaderGL = "
-#version 330
+#version 150 core
+#extension GL_ARB_explicit_attrib_location : enable
 in vec2 uvOut;
 
 uniform sampler2D texIn;
@@ -40,6 +43,9 @@ private:
     GLuint vbo;
 
     GLuint program;
+    GLuint mvp;
+
+    vec2i fbSize;
 
     GLuint createShader(GLenum type, const(char)* code) {
         GLuint shader = glCreateShader(type);
@@ -96,16 +102,18 @@ private:
     void initState() {
         glGenBuffers(1, &vbo);
         glGenVertexArrays(1, &vao);
-
         glBindVertexArray(vao);
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
+
+        program = createShaderProgram(sskBaseVtxShaderGL, sskBaseFragShaderGL);
+        mvp = glGetUniformLocation(program, "mvp");
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glVertexAttribPointer(
             0,
             2,
             GL_FLOAT,
             GL_FALSE,
-            float.sizeof*4,
+            vec2.sizeof*2,
             cast(void*)0
         );
         glVertexAttribPointer(
@@ -113,18 +121,16 @@ private:
             2,
             GL_FLOAT,
             GL_FALSE,
-            float.sizeof*4,
-            cast(void*)8
+            vec2.sizeof*2,
+            cast(void*)vec2.sizeof
         );
-
-        program = createShaderProgram(sskBaseVtxShaderGL, sskBaseFragShaderGL);
-        glBufferData(GL_ARRAY_BUFFER, vec2.sizeof*12, null, GL_DYNAMIC_DRAW);
     }
 
 public:
 
     ~this() {
         glDeleteBuffers(1, &vbo);
+        glDeleteVertexArrays(1, &vao);
         glDeleteProgram(program);
     }
     
@@ -132,8 +138,9 @@ public:
         super(window);
 
         window.makeCurrent();
-        enforce(loadOpenGL() != GLSupport.noLibrary, nstring("Failed to establish OpenGL context."));
-    
+        GLSupport support = loadOpenGL();
+        enforce(support != GLSupport.noLibrary, nstring("Failed to establish OpenGL context."));
+
         this.initState();
     }
 
@@ -146,21 +153,34 @@ public:
     override
     void begin() {
         this.getWindow().makeCurrent();
-        glEnable(GL_SCISSOR_TEST);
+        
+        fbSize = this.getWindow().getFramebufferSize();
+        glViewport(0, 0, fbSize.x, fbSize.y);
+
+        mat4 mvpMatrix = mat4.orthographic(0, fbSize.x, fbSize.y, 0, 0, ushort.max);
+        glUniformMatrix4fv(mvp, 1, GL_TRUE, mvpMatrix.ptr);
+
         glBindVertexArray(vao);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_SCISSOR_TEST);
+        glEnable(GL_BLEND);
+        glBlendEquation(GL_FUNC_ADD);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     }
 
     override
     void end() {
         this.getWindow().makeCurrent();
         glDisable(GL_SCISSOR_TEST);
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
     }
 
     override
     void setScissor(recti scissor) {
         this.getWindow().makeCurrent();
-        vec2i wsize = this.getWindow().getFramebufferSize();
-        glScissor(scissor.left, wsize.y-scissor.y, scissor.width, scissor.height);
+
+        glScissor(scissor.left, fbSize.y-scissor.height, scissor.width, fbSize.y);
     }
 
     /**
@@ -168,6 +188,9 @@ public:
     */
     override
     void renderTextureTo(SskTexture texture, recti at) {
+        this.getWindow().makeCurrent();
+
+        // Vertex Data
         vec2[12] vtxData = [
             vec2(at.left, at.top),
             vec2(0, 0),
@@ -182,12 +205,19 @@ public:
             vec2(at.right, at.bottom),
             vec2(1, 1),
         ];
-        
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, vtxData.sizeof*vtxData.length, vtxData.ptr, GL_DYNAMIC_DRAW);
+
         glBindVertexArray(vao);
-        glBindBuffer(vbo, GL_ARRAY_BUFFER);
+        glUseProgram(program);
         glBindTexture(GL_TEXTURE_2D, cast(GLuint)texture.getHandle());
-        glBufferSubData(GL_ARRAY_BUFFER, 0, vec2.sizeof*vtxData.length, vtxData.ptr);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(0);
     }
 
     /**
@@ -337,10 +367,8 @@ public:
                 0,
                 GL_RGBA,
                 GL_UNSIGNED_BYTE,
-                null
+                data.ptr
             );
-
-            glGenerateMipmap(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
     }

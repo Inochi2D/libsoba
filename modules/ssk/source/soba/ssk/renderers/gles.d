@@ -42,7 +42,10 @@ private:
     GLuint vbo;
 
     GLuint program;
-    
+    GLuint mvp;
+
+    vec2i fbSize;
+
     GLuint createShader(GLenum type, const(char)* code) {
         GLuint shader = glCreateShader(type);
         glShaderSource(shader, 1, &code, null);
@@ -94,6 +97,33 @@ private:
 
         return prog;
     }
+
+    void initState() {
+        glGenBuffers(1, &vbo);
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        program = createShaderProgram(sskBaseVtxShaderGLES, sskBaseFragShaderGLES);
+        mvp = glGetUniformLocation(program, "mvp");
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glVertexAttribPointer(
+            0,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            vec2.sizeof*2,
+            cast(void*)0
+        );
+        glVertexAttribPointer(
+            1,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            vec2.sizeof*2,
+            cast(void*)vec2.sizeof
+        );
+    }
 public:
     this(SioWindow window) {
         super(window);
@@ -110,23 +140,41 @@ public:
 
     override
     SskTexture createTexture(SskTextureFormat format, SskTextureKind kind, uint width, uint height) {
+        this.getWindow().makeCurrent();
         return nogc_new!SskGLESTexture(format, kind, width, height);
     }
 
     override
     void begin() {
+        this.getWindow().makeCurrent();
+        
+        fbSize = this.getWindow().getFramebufferSize();
+        glViewport(0, 0, fbSize.x, fbSize.y);
+
+        mat4 mvpMatrix = mat4.orthographic(0, fbSize.x, fbSize.y, 0, 0, ushort.max);
+        glUniformMatrix4fv(mvp, 1, GL_TRUE, mvpMatrix.ptr);
+        
+        glBindVertexArray(vao);
+        glDisable(GL_DEPTH_TEST);
         glEnable(GL_SCISSOR_TEST);
+        glEnable(GL_BLEND);
+        glBlendEquation(GL_FUNC_ADD);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     }
 
     override
     void end() {
+        this.getWindow().makeCurrent();
         glDisable(GL_SCISSOR_TEST);
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
     }
 
     override
     void setScissor(recti scissor) {
-        vec2i wsize = this.getWindow().getFramebufferSize();
-        glScissor(scissor.left, wsize.y-scissor.y, scissor.width, scissor.height);
+        this.getWindow().makeCurrent();
+
+        glScissor(scissor.left, fbSize.y-scissor.height, scissor.width, fbSize.y);
     }
 
     /**
@@ -134,7 +182,37 @@ public:
     */
     override
     void renderTextureTo(SskTexture texture, recti at) {
+        this.getWindow().makeCurrent();
 
+        // Vertex Data
+        vec2[12] vtxData = [
+            vec2(at.left, at.top),
+            vec2(0, 0),
+            vec2(at.left, at.bottom),
+            vec2(0, 1),
+            vec2(at.right, at.top),
+            vec2(1, 0),
+            vec2(at.right, at.top),
+            vec2(1, 0),
+            vec2(at.left, at.bottom),
+            vec2(0, 1),
+            vec2(at.right, at.bottom),
+            vec2(1, 1),
+        ];
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, vtxData.sizeof*vtxData.length, vtxData.ptr, GL_DYNAMIC_DRAW);
+
+        glBindVertexArray(vao);
+        glUseProgram(program);
+        glBindTexture(GL_TEXTURE_2D, cast(GLuint)texture.getHandle());
+        
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(0);
     }
 
     /**

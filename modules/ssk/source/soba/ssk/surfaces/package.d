@@ -30,6 +30,8 @@ public:
     this(SskScene scene) {
         this.scene = scene;
         this.dirty = true;
+
+        children = weak_vector!SskSurface(0);
     }
 
     ~this() {
@@ -130,16 +132,16 @@ public:
         Draws the surface and any child surfaces (if dirty)
     */
     final
-    void renderAll() {
+    void renderAll(SskRenderer renderer) {
+        renderer.setScissor(this.getBounds());
+
         if (dirty) {
-            render(this.getScene().getRenderer());
+            render(renderer);
             dirty = false;
         }
 
-        this.getScene().getRenderer().setScissor(this.getBounds());
-
         foreach(child; children) {
-            child.renderAll();
+            child.renderAll(renderer);
         }
     }
 

@@ -16,7 +16,6 @@ class SskCanvasSurface : SskSurface {
 private:
     SbImage image;
     SbContext context;
-
     SskTexture texture;
 
 public:
@@ -55,15 +54,14 @@ public:
     */
     void end() {
         context.end();
+        auto lock = image.acquire();
+        texture.upload(image.getFormat().fromImageFormat(), lock.data[0..lock.dataLength], lock.width, lock.height);
+        image.release(lock);
         this.markDirty();
     }
 
     override
     void render(SskRenderer renderer) {
-        auto lock = image.acquire();
-        texture.upload(image.getFormat().fromImageFormat(), lock.data[0..lock.dataLength], lock.width, lock.height);
-        image.release(lock);
-
         renderer.renderTextureTo(texture, this.getBoundsRaw());
     }
 }

@@ -15,7 +15,7 @@ dependency "soba:canvas" version="*"
 targetPath "out/"
 targetName "ssk"
 
-versions "GL_31"
+versions "GL_41"
 
 // Apple platforms have metal support
 configuration "apple" {
