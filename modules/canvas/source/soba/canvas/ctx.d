@@ -113,7 +113,7 @@ private:
         return false;
     }
 
-    void createTextPath(SbFont font, SbGlyph[] glyphs, vec2 position) {
+    vec2 createTextPath(SbFont font, SbGlyph[] glyphs, vec2 position) {
         foreach(i; 0..glyphs.length) {
             double xOffset  = cast(double)glyphs[i].xOffset;
             double yOffset  = cast(double)glyphs[i].yOffset;
@@ -134,6 +134,8 @@ private:
             position.x += xAdvance;
             position.y += yAdvance;
         }
+
+        return position;
     }
 
 protected:
@@ -331,77 +333,99 @@ public:
 
     /**
         Draws the specified text
+
+        Returns the position of the end of the text.
     */
     final
-    void fillText(SbFont font, nstring text, vec2 position) {
-        if (!hasLock()) return;
+    vec2 fillText(SbFont font, nstring text, vec2 position) {
+        if (!hasLock()) return position;
 
         buffer.addText(text);
         buffer.guessSegmentProperties();
         buffer.shape(font);
 
-        this.fillText(font, buffer.getGlyphs(), position);
+        position = this.fillText(font, buffer.getGlyphs(), position);
         buffer.reset();
+
+        return position;
     }
 
     /**
         Draws the specified text
+
+        Returns the position of the end of the text.
     */
     final
-    void strokeText(SbFont font, nstring text, vec2 position) {
-        if (!hasLock()) return;
+    vec2 strokeText(SbFont font, nstring text, vec2 position) {
+        if (!hasLock()) return position;
 
         buffer.addText(text);
         buffer.guessSegmentProperties();
         buffer.shape(font);
 
-        this.strokeText(font, buffer.getGlyphs(), position);
+        position = this.strokeText(font, buffer.getGlyphs(), position);
         buffer.reset();
+
+        return position;
     }
 
     /**
         Draws the specified text
+
+        Returns the position of the end of the text.
     */
     final
-    void pathText(SbFont font, nstring text, vec2 position) {
-        if (!hasLock()) return;
+    vec2 pathText(SbFont font, nstring text, vec2 position) {
+        if (!hasLock()) return position;
 
         buffer.addText(text);
         buffer.guessSegmentProperties();
         buffer.shape(font);
 
-        this.pathText(font, buffer.getGlyphs(), position);
+        position = this.pathText(font, buffer.getGlyphs(), position);
         buffer.reset();
+
+        return position;
     }
 
     /**
         Draws the specified text
+
+        Returns the position of the end of the text.
     */
     final
-    void fillText(SbFont font, SbGlyph[] glyphs, vec2 position) {
-        if (!hasLock()) return;
+    vec2 fillText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        if (!hasLock()) return position;
 
-        this.createTextPath(font, glyphs, position);
+        position = this.createTextPath(font, glyphs, position);
         this.fill();
+
+        return position;
     }
 
     /**
         Draws the specified text
+
+        Returns the position of the end of the text.
     */
     final
-    void strokeText(SbFont font, SbGlyph[] glyphs, vec2 position) {
-        if (!hasLock()) return;
+    vec2 strokeText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        if (!hasLock()) return position;
         
-        this.createTextPath(font, glyphs, position);
+        position = this.createTextPath(font, glyphs, position);
         this.stroke();
+
+        return position;
     }
 
     /**
         Draws the specified text
     */
     final
-    void pathText(SbFont font, SbGlyph[] glyphs, vec2 position) {
-        this.createTextPath(font, glyphs, position);
+    vec2 pathText(SbFont font, SbGlyph[] glyphs, vec2 position) {
+        if (!hasLock()) return position;
+
+        return this.createTextPath(font, glyphs, position);
     }
 
     /**
