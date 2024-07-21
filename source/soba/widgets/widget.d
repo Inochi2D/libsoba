@@ -130,7 +130,7 @@ protected:
         Called when this node has a new parent
     */
     void onReparented(SbWidget newParent) {
-        newParent.surface.setChild(this.surface);
+        newParent.surface.addChild(this.surface);
     }
 
     /**

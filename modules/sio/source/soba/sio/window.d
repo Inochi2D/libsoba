@@ -238,7 +238,7 @@ private:
 
         if (info.borderless) flags |= SDL_WINDOW_BORDERLESS;
         if (info.resizable) flags |= SDL_WINDOW_RESIZABLE;
-        version(OSX) flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+        flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 
         // Show IME Composition window
         // Allow long compositions
