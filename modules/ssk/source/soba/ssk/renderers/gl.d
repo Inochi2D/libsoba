@@ -170,6 +170,7 @@ public:
         glEnable(GL_BLEND);
         glBlendEquation(GL_FUNC_ADD);
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     override
@@ -202,6 +203,8 @@ public:
     */
     override
     void renderTextureTo(SskTexture texture, recti at) {
+        if (!texture) return;
+        
         this.getWindow().makeCurrent();
 
         // Vertex Data
