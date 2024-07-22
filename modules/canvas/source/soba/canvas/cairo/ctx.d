@@ -146,8 +146,6 @@ public:
     override
     void clearAll() {
         if (!hasLock()) return;
-
-        this.setSource(vec4(0, 0, 0, 0));
         cairo_paint(cr);
     }
 
@@ -495,6 +493,9 @@ public:
     void roundRect(math.rect r, float borderRadiusTL, float borderRadiusTR, float borderRadiusBL, float borderRadiusBR) {
         if (!hasLock()) return;
         
+        // Clear prior path
+        cairo_new_path(cr);
+
         cairo_move_to(cr, r.x+borderRadiusTL, r.y);
 
         // Top-Right
