@@ -19,11 +19,37 @@ private:
     SskTexture texture;
 
     void tryUpload() {
-        auto lock = image.acquire();
-        if(lock) {
-            texture.upload(image.getFormat().fromImageFormat(), lock.data[0..lock.dataLength], lock.width, lock.height);
-            image.release(lock);
-            this.markDirty();
+        if (texture) {
+            auto lock = image.acquire();
+            if(lock) {
+                texture.upload(image.getFormat().fromImageFormat(), lock.data[0..lock.dataLength], lock.width, lock.height);
+                image.release(lock);
+                this.markDirty();
+            }
+        }
+    }
+
+    void tryCreateTexture() {
+
+        // Create a new texture
+        if (this.getScene()) {
+
+            // Yeet old one
+            if (this.texture) {
+                
+                // Delete old texture belonging to old scene
+                nogc_delete(this.texture);
+                this.texture = null;
+            }
+            
+            this.texture = this.getScene().getRenderer().createTexture(
+                image.getFormat().fromImageFormat(),
+                SskTextureKind.image,
+                image.getWidth(),
+                image.getHeight()
+            );
+
+            this.tryUpload();
         }
     }
 
@@ -38,23 +64,27 @@ protected:
     override
     void onSceneChanged(SskScene newScene) {
 
-        // Delete old texture belonging to old scene
-        nogc_delete(this.texture);
+        if (newScene) {
+            this.setBounds(recti(
+                0, 0,
+                image.getWidth(), image.getHeight()
+            ));
+            
+            this.tryCreateTexture();
+        }
+    }
 
-        this.setBounds(recti(
-            0, 0,
-            image.getWidth(), image.getHeight()
-        ));
+    /**
+        Called when resized
 
-        // Create a new texture
-        this.texture = newScene.getRenderer().createTexture(
-            image.getFormat().fromImageFormat(),
-            SskTextureKind.image,
-            image.getWidth(),
-            image.getHeight()
-        );
-
-        this.tryUpload();
+        The size change is first applied *after* this function is called
+        So you may refer to the old size via getBounds()
+    */
+    override
+    void onBoundsChanged(recti newBounds, recti newBoundsScaled) {
+        image.resize(newBoundsScaled.width, newBoundsScaled.height);
+        if (texture) this.tryUpload();
+        else this.tryCreateTexture();
     }
 
 public:
@@ -67,24 +97,19 @@ public:
     /**
         Creates a surface
     */
-    this(SskScene scene, uint width, uint height) {
-        super(scene);
+    this(uint width, uint height) {
+        super();
 
         this.setBounds(recti(
             0, 0,
             width, height
         ));
 
-        recti sbounds = this.getBoundsScaled();
-
-        this.image = nogc_new!SbImage(sbounds.width, sbounds.height, 4);
+        vec2 scale = this.getScale();
+        this.image = nogc_new!SbImage(cast(uint)(width*scale.x), cast(uint)(height*scale.y), 4);
         this.context = SbContext.create();
-        this.texture = scene.getRenderer().createTexture(
-            image.getFormat().fromImageFormat(),
-            SskTextureKind.image,
-            image.getWidth(), 
-            image.getHeight()
-        );
+        
+        this.tryCreateTexture();
     }
 
     /**

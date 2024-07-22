@@ -58,7 +58,27 @@ protected:
     */
     void onSceneChanged(SskScene newScene) { }
 
+    /**
+        Called when resized
+
+        The size change is first applied *after* this function is called
+        So you may refer to the old size via getBounds()
+    */
+    void onBoundsChanged(recti newBounds, recti newBoundsScaled) { }
+
 public:
+
+    /**
+        Constructor with no scene association
+    */
+    this() {
+        this.dirty = true;
+        children = weak_vector!SskSurface(0);
+    }
+
+    /**
+        Constructor associating this surface with a scene
+    */
     this(SskScene scene) {
         this.scene = scene;
         this.dirty = true;
@@ -95,6 +115,8 @@ public:
     */
     final
     void addChild(SskSurface child) {
+
+        if (!child) return;
 
         // If the surface is already a child of this node
         // we don't need to do anything.
@@ -146,7 +168,10 @@ public:
     }
 
     vec2 getScale() {
-        return this.getScene().getScaling();
+        if (this.getScene()) {
+            return this.getScene().getScaling();
+        }
+        return vec2(1, 1);
     }
 
     /**
@@ -162,13 +187,17 @@ public:
     */
     final
     recti getBoundsScaled() {
-        this.scale = this.getScene().getScaling();
-        return recti(
-            cast(int)(bounds.x*scale.x), 
-            cast(int)(bounds.y*scale.y), 
-            cast(int)(bounds.width*scale.x), 
-            cast(int)(bounds.height*scale.y)
-        );
+        if (this.getScene()) {
+            this.scale = this.getScene().getScaling();
+            return recti(
+                cast(int)(bounds.x*scale.x), 
+                cast(int)(bounds.y*scale.y), 
+                cast(int)(bounds.width*scale.x), 
+                cast(int)(bounds.height*scale.y)
+            );
+        } else {
+            return bounds;
+        }
     }
 
     /**
@@ -185,7 +214,21 @@ public:
         Sets the bounds of the surface relative to parent surface.
     */
     void setBounds(recti bounds) {
-        this.bounds = bounds;
+        if (bounds != this.bounds) {
+            recti scaled = bounds;
+            if (this.getScene()) {
+                this.scale = this.getScene().getScaling();
+                scaled = recti(
+                    cast(int)(bounds.x*scale.x), 
+                    cast(int)(bounds.y*scale.y), 
+                    cast(int)(bounds.width*scale.x), 
+                    cast(int)(bounds.height*scale.y)
+                );
+            }
+
+            this.onBoundsChanged(bounds, scaled);
+            this.bounds = bounds;
+        }
     }
 
     /**
@@ -213,6 +256,14 @@ public:
     final
     void markDirty() {
         dirty = true;
+    }
+
+    /**
+        Gets whether this surface is marked dirty.
+    */
+    final
+    bool isDirty() {
+        return parent && parent.isDirty() ? true : dirty;
     }
 
     /**
