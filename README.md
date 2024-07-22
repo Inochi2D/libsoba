@@ -19,51 +19,18 @@ Soba consists of a main library and multiple smaller reusable sub-libraries.
 These libraries provides core functionality in a more cross platform way.
 
 The current modules are:  
- * `soba:canvas` - Soba Canvas  
-   Provides vector rendering functionality.  
+
+ * `soba:sio` - Soba I/O  
+   Provides cross-platform access to system functions, such as window creation, event handling. 
+   file dialogs, and more. 
 
  * `soba:ssk` - Soba Scene Kit  
    Provides a portable scene graph for compositing UI surfaces using GPUs.  
 
+ * `soba:canvas` - Soba Canvas  
+   Provides vector rendering functionality.  
+
 
 ## How do I open a Window?
 
-**NOTE** libsoba is not ready for mainstream use and basically nothing works yet lol
-
-1. Call sbInit to initialize libsoba
-2. Create a SbApp with information about your app
-3. Call SbApp.run with a SbApplicationWindow as a parameter.
-
-```d
-module app;
-import soba;
-import soba.core.gpu;
-import soba.ui.window.appwindow;
-import soba.drawing;
-
-class MyApplication : SbApplicationWindow {
-public:
-    this(SbApp app) {
-        super(app, 640, 480);
-    }
-
-    /**
-        Called when the application should be re-rendered.
-    */
-    override
-    void onRender(SbDrawingContext drawing) {
-        // TODO: draw stuff
-    }
-}
-
-int main() {
-    sbInit();
-
-    SbAppInfo info;
-    info.name = nstring("My Cool App");
-    info.version_ = nstring("1.0.0");
-
-    SbApplication app = nogc_new!SbApplication(info);
-    return app.run(nogc_new!MyApplication(app, 640, 480));
-}
-```
+The API has undergone a major restructuring so currently the widget system is not usable.

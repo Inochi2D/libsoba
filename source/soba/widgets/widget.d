@@ -35,6 +35,8 @@ private:
             }
         }
 
+        this.onReparent(this.parent, parent);
+
         // We want to fit our parent
         this.setRequestedSize(parent.bounds.dimensions);
         this.parent = parent;
@@ -129,8 +131,10 @@ protected:
     /**
         Called when this node has a new parent
     */
-    void onReparented(SbWidget newParent) {
-        newParent.surface.addChild(this.surface);
+    void onReparent(SbWidget old, SbWidget new_) {
+        if (new_) {
+            new_.surface.addChild(this.surface);
+        }
     }
 
     /**
