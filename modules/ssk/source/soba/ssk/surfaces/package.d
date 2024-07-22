@@ -239,10 +239,7 @@ public:
         renderer.setScissor(this.getBounds());
 
         preRender();
-            if (dirty) {
-                render(renderer);
-                dirty = false;
-            }
+            render(renderer);
 
             foreach(child; children) {
                 child.renderAll(renderer);
