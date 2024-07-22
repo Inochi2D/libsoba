@@ -46,6 +46,8 @@ private:
     GLuint mvp;
 
     vec2i fbSize;
+    vec2i wSize;
+    vec2 uiScale;
 
     GLuint createShader(GLenum type, const(char)* code) {
         GLuint shader = glCreateShader(type);
@@ -155,6 +157,8 @@ public:
         this.getWindow().makeCurrent();
         
         fbSize = this.getWindow().getFramebufferSize();
+        wSize = this.getWindow().getWindowSize();
+        uiScale = vec2(cast(float)fbSize.x/cast(float)wSize.x, cast(float)fbSize.y/cast(float)wSize.y);
         glViewport(0, 0, fbSize.x, fbSize.y);
 
         mat4 mvpMatrix = mat4.orthographic(0, fbSize.x, fbSize.y, 0, 0, ushort.max);
@@ -180,7 +184,17 @@ public:
     void setScissor(recti scissor) {
         this.getWindow().makeCurrent();
 
-        glScissor(scissor.left, fbSize.y-scissor.height, scissor.width, fbSize.y);
+        recti scissorRect = recti(
+            cast(int)(scissor.left*uiScale.x), 
+            fbSize.y-cast(int)(scissor.height*uiScale.y), 
+            cast(int)(scissor.width*uiScale.x), 
+            fbSize.y
+        );
+
+        scissorRect.x = clamp(scissorRect.x, 0, fbSize.x);
+        scissorRect.y = clamp(scissorRect.y, 0, fbSize.y);
+
+        glScissor(scissorRect.x, scissorRect.y, scissorRect.width, scissorRect.height);
     }
 
     /**

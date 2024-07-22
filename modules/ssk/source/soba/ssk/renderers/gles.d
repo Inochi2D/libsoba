@@ -45,6 +45,8 @@ private:
     GLuint mvp;
 
     vec2i fbSize;
+    vec2i wSize;
+    vec2 uiScale;
 
     GLuint createShader(GLenum type, const(char)* code) {
         GLuint shader = glCreateShader(type);
@@ -149,6 +151,8 @@ public:
         this.getWindow().makeCurrent();
         
         fbSize = this.getWindow().getFramebufferSize();
+        wSize = this.getWindow().getWindowSize();
+        uiScale = vec2(cast(float)fbSize.x/cast(float)wSize.x, cast(float)fbSize.y/cast(float)wSize.y);
         glViewport(0, 0, fbSize.x, fbSize.y);
 
         mat4 mvpMatrix = mat4.orthographic(0, fbSize.x, fbSize.y, 0, 0, ushort.max);

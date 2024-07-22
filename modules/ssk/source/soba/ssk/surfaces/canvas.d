@@ -41,12 +41,17 @@ protected:
         // Delete old texture belonging to old scene
         nogc_delete(this.texture);
 
+        this.setBounds(recti(
+            0, 0,
+            image.getWidth(), image.getHeight()
+        ));
+
         // Create a new texture
         this.texture = newScene.getRenderer().createTexture(
             image.getFormat().fromImageFormat(),
             SskTextureKind.image,
             image.getWidth(),
-            image.getWidth()
+            image.getHeight()
         );
 
         this.tryUpload();
@@ -64,29 +69,20 @@ public:
     */
     this(SskScene scene, uint width, uint height) {
         super(scene);
-        this.bounds = recti(
-            0,
-            0,
-            width,
-            height
-        );
 
-        this.image = nogc_new!SbImage(width, height, 4);
+        this.setBounds(recti(
+            0, 0,
+            width, height
+        ));
+
+        recti sbounds = this.getBoundsScaled();
+
+        this.image = nogc_new!SbImage(sbounds.width, sbounds.height, 4);
         this.context = SbContext.create();
         this.texture = scene.getRenderer().createTexture(
             image.getFormat().fromImageFormat(),
             SskTextureKind.image,
-            width,
-            height
-        );
-    }
-
-    override
-    recti getRenderBounds() {
-        return recti(
-            0,
-            0,
-            image.getWidth(),
+            image.getWidth(), 
             image.getHeight()
         );
     }
@@ -96,6 +92,7 @@ public:
     */
     SbContext begin() {
         context.begin(image);
+        context.scale(this.getScale());
         return context;
     }
 
@@ -109,6 +106,6 @@ public:
 
     override
     void render(SskRenderer renderer) {
-        renderer.renderTextureTo(texture, this.getBoundsRaw());
+        renderer.renderTextureTo(texture, this.getBoundsScaled());
     }
 }

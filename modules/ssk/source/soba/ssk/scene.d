@@ -82,6 +82,17 @@ public:
     }
 
     /**
+        Gets the horizontal and vertical scaling for this scene
+    */
+    vec2 getScaling() {
+        if (!window) return vec2(1, 1);
+        
+        vec2 pointSize = window.getWindowSize();
+        vec2 fbSize = window.getFramebufferSize();
+        return vec2(cast(float)fbSize.x/cast(float)pointSize.x, cast(float)fbSize.y/cast(float)pointSize.y);
+    }
+
+    /**
         Redraws dirty parts of the scene
     */
     void redraw() {

@@ -28,6 +28,10 @@ private:
         }    
     }
 
+    uint width, height;
+    uint scaledWidth, scaledHeight;
+    vec2 scale;
+
 protected:
     /**
         Surface dirty flag
@@ -141,6 +145,10 @@ public:
         return bounds;
     }
 
+    vec2 getScale() {
+        return this.getScene().getScaling();
+    }
+
     /**
         Gets the raw bounds of the surface.
     */
@@ -150,13 +158,27 @@ public:
     }
 
     /**
+        Gets the scaled bounds of the surface.
+    */
+    final
+    recti getBoundsScaled() {
+        this.scale = this.getScene().getScaling();
+        return recti(
+            cast(int)(bounds.x*scale.x), 
+            cast(int)(bounds.y*scale.y), 
+            cast(int)(bounds.width*scale.x), 
+            cast(int)(bounds.height*scale.y)
+        );
+    }
+
+    /**
         Gets the bounds of the surface in rendering space.
     */
     recti getRenderBounds() {
         if (parent) {
             return parent.getRenderBounds();
         }
-        return bounds;
+        return this.getBoundsScaled();
     }
 
     /**
