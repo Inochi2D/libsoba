@@ -186,6 +186,8 @@ public:
     */
     final
     void shape(SbFont font) {
+        if (!font) return;
+        
         hb_shape(font.getHandle(), buf, null, 0);
 
         // Build SbGlyph buffer up
