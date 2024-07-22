@@ -11,6 +11,7 @@ import numem.mem.map;
 import cairo;
 import bindbc.sdl;
 import soba.sio;
+import soba.widgets.window;
 
 @nogc:
 
@@ -29,13 +30,13 @@ class SbApplication {
 @nogc:
 private:
     SbAppInfo appInfo;
-    // SbMainWindow rootWindow;
+    SbWindow rootWindow;
 
 public:
     ~this() {
         nogc_delete(appInfo.name);
         nogc_delete(appInfo.version_);
-        // nogc_delete(rootWindow);
+        nogc_delete(rootWindow);
     }
 
     /**
@@ -46,14 +47,27 @@ public:
     }
 
     /**
+        Sets the root window for the application
+    */
+    void setRootWindow(SbWindow rootWindow) {
+        if (!this.rootWindow) {
+            this.rootWindow = rootWindow;
+        }
+    }
+
+    /**
         Runs the application
     */
     void run() {
+        if (!this.rootWindow) return;
+
         try {
             sbInit();
 
+            rootWindow.showAll();
+
             /// Pump event queue while the root window is meant to run.
-            while(SioEventLoop.instance().hasHandlers()) {
+            while(rootWindow.isVisible()) {
                 SioEventLoop.instance().pumpEvents();
             }
         } catch(NuException ex) {

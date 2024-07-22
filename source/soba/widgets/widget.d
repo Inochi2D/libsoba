@@ -14,7 +14,6 @@ class SbWidget : SioIAnimationHandler {
 @nogc:
 private:
     bool shown;
-    bool dirty;
     recti bounds;
     vec2i requestedSize;
     vec2i minSize = vec2i(0, 0);
@@ -35,8 +34,6 @@ private:
             }
         }
 
-        this.onReparent(this.parent, parent);
-
         // We want to fit our parent
         this.setRequestedSize(parent.bounds.dimensions);
         this.parent = parent;
@@ -45,12 +42,30 @@ private:
     SskSurface surface;
 
 protected:
+
+    /**
+        Sets the surface of this widget.
+    */
+    void setSurface(SskSurface surface) {
+        
+        // Replaces the surface.
+        if (this.surface) {
+            if (auto parent = this.surface.getParent()) {
+                parent.addChild(surface);
+                parent.removeChild(this.surface);
+            }
+            nogc_delete(this.surface);
+        }
+
+        this.surface = surface;
+    }
     
     /**
         Adds a child to the widget
     */
     size_t addChild(bool front = true)(SbWidget widget) {
         widget.setParent(this);
+        widget.onReparent(this);
 
         static if (front) {
             children.pushFront(widget);
@@ -58,7 +73,7 @@ protected:
             children ~= widget;
         }
 
-        widget.markDirty();
+        widget.requestRedraw();
         this.reflow();
         return children.size();
     }
@@ -113,27 +128,36 @@ protected:
     /**
         Gets the surface this widget is rendering on to
     */
-    ref SskSurface getSurface() {
-        return parent.getSurface();
+    final
+    SskSurface getSurface() {
+        if (surface) {
+            return surface;
+        } else if (parent) {
+            return parent.getSurface();
+        } else return null;
     }
 
     /**
         Called when a change happens that'd require reflowing the widget.
     */
     void onReflow() {
+        if (surface) {
+            surface.setBounds(this.getBounds());
+            this.requestRedraw();
+        }
+
         foreach(child; children) {
             child.onReflow();
         }
-        surface.setBounds(this.getBounds());
     }
 
 
     /**
         Called when this node has a new parent
     */
-    void onReparent(SbWidget old, SbWidget new_) {
+    void onReparent(SbWidget new_) {
         if (new_) {
-            new_.surface.addChild(this.surface);
+            new_.surface.addChild(this.getSurface());
         }
     }
 
@@ -146,6 +170,27 @@ protected:
     void animate() {
         SioEventLoop.instance().addAnimation(this);
     }
+
+    /**
+        Event handler
+    */
+    void onEvent(SioEvent event) {
+        foreach(SbWidget child; children) {
+            if (child.isVisible()) {
+                child.onEvent(event);
+            }
+        }
+    }
+
+    /**
+        Event called when visibility is changed.
+    */
+    void onVisibilityChanged(bool newState) { }
+
+    /**
+        Event called when redraw was requested.
+    */
+    void onRedrawRequested() { }
 
 public:
 
@@ -177,9 +222,13 @@ public:
         Shows the widget
     */
     SbWidget show() {
-        shown = true;
-        this.requestRedraw();
-        this.reflow();
+        if (!shown) {
+            shown = true;
+            
+            this.onVisibilityChanged(true);
+            this.reflow();
+            this.requestRedraw();
+        }
 
         return this;
     }
@@ -188,9 +237,12 @@ public:
         Hides the widget
     */
     SbWidget hide() {
-        shown = false;
-        this.requestRedraw();
-
+        if (shown) {
+            shown = false;
+            
+            this.onVisibilityChanged(false);
+            this.requestRedraw();
+        }
         return this;
     }
 
@@ -211,6 +263,7 @@ public:
         bounds.height = clamp(bounds.height, minSize.y, maxSize.y);
         this.bounds = bounds;
         this.requestRedraw();
+
         return this;
     }
 
@@ -264,7 +317,15 @@ public:
     */
     final
     void requestRedraw() {
-        surface.markDirty();
+        this.onRedrawRequested();
+
+        if (surface) {
+            surface.markDirty();
+        }
+        
+        if (parent) {
+            parent.requestRedraw();
+        }
     }
 
     /**
@@ -272,7 +333,7 @@ public:
     */
     final
     bool isDirty() {
-        return dirty;
+        return surface ? surface.isDirty() : false;
     }
 
     /**
@@ -293,15 +354,4 @@ public:
         Remember to call requestRedraw() when done with a frame.
     */
     bool runFrame(float currTime, float deltaTime) { return true; }
-
-    /**
-        Event handler
-    */
-    void onEvent(SioEvent event) {
-        foreach(SbWidget child; children) {
-            if (child.isVisible()) {
-                child.onEvent(event);
-            }
-        }
-    }
 }
