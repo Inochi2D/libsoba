@@ -290,10 +290,28 @@ public:
     bool resize(uint width, uint height) {
         SbImageLock* lock = acquire();
         if (lock) {
-            
+            import std.algorithm.comparison : min;
+
+            size_t smallestHeight = min(this.height, height);
+
+            // Copy over old data.
+            vector!ubyte dest = vector!ubyte(width*height*alignment);
+            foreach(y; 0..smallestHeight) {
+                size_t smallestWidth = min(this.width, width);
+
+                size_t srcStride = this.width*alignment;
+                size_t destStride = width*alignment;
+                size_t readStride = smallestWidth*alignment;
+
+                size_t srcY = srcStride*y;
+                size_t destY = destStride*y;
+                dest.data[destY..destY+readStride] = this.pixels.data[srcY..srcY+readStride];
+            }
+
+            nogc_delete(this.pixels);
+            this.pixels = dest;
             this.width = width;
             this.height = height;
-            this.pixels.resize(width*height*alignment);
 
             release(lock);
             return true;
