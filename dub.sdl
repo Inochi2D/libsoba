@@ -4,7 +4,7 @@ authors "Inochi2D Project"
 copyright "Copyright © 2023-2024, Inochi2D Project"
 license "BSD 2-clause"
 
-dependency "numem" version="~>0.8.3"
+dependency "numem" version="~>0.9.1"
 dependency "inmath" version="~>1.2.1"
 dependency "soba:canvas" version="*"
 dependency "soba:ssk" version="*"
