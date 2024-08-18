@@ -52,4 +52,5 @@ configuration "portable" {
 
 configuration "demo" {
 	targetType "executable"
+	version "DemoMode"
 }
