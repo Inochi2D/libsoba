@@ -245,7 +245,13 @@ public:
     */
     override
     void renderToTexture(SskTexture texture) {
+        if (!texture) {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            return;
+        }
 
+        if (texture.getKind() != SskTextureKind.framebuffer) return;
+        glBindFramebuffer(GL_FRAMEBUFFER, cast(uint)texture.getHandle());
     }
 }
 
