@@ -166,19 +166,20 @@ public:
 
         glBindVertexArray(vao);
         glDisable(GL_DEPTH_TEST);
+        glDisable(GL_STENCIL_TEST);
         glEnable(GL_SCISSOR_TEST);
         glEnable(GL_BLEND);
         glBlendEquation(GL_FUNC_ADD);
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-        glClear(GL_COLOR_BUFFER_BIT);
     }
 
     override
     void end() {
         this.getWindow().makeCurrent();
         glDisable(GL_SCISSOR_TEST);
-        glDisable(GL_BLEND);
+        glEnable(GL_STENCIL_TEST);
         glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
     }
 
     override

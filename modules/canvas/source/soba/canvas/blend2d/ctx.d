@@ -143,6 +143,7 @@ public:
     void clearAll() {
         if (!hasLock()) return;
         blContextClearAll(&ctx);
+        blContextFillAll(&ctx);
     }
 
     override
