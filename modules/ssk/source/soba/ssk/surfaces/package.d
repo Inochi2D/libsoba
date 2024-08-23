@@ -257,6 +257,7 @@ public:
     final
     void markDirty() {
         dirty = true;
+        if (scene) scene.addDirty();
 
         // Propagate down to children.
         foreach(ref child; children) {

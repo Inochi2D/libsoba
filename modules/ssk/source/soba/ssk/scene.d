@@ -25,6 +25,8 @@ private:
 
     weak_vector!SskSurface enqueued;
 
+    size_t dirtyElements;
+
 package(soba.ssk):
 
     /**
@@ -49,6 +51,12 @@ package(soba.ssk):
         }
 
         enqueued ~= surface;
+    }
+
+    /// Tells the scene that another dirty element has been added.
+    /// This is used for skipping redraws when no elements have changed.
+    void addDirty() {
+        dirtyElements++;
     }
 
 public:
@@ -96,18 +104,22 @@ public:
         Redraws dirty parts of the scene
     */
     void redraw() {
-        vec2i fbSize = window.getFramebufferSize();
-        root.setBounds(recti(
-            0, 
-            0,
-            fbSize.x,
-            fbSize.y
-        ));
+        if (dirtyElements > 0) {
+            vec2i fbSize = window.getFramebufferSize();
+            root.setBounds(recti(
+                0, 
+                0,
+                fbSize.x,
+                fbSize.y
+            ));
 
-        renderer.begin();
-            root.renderAll(renderer);
-        renderer.end();
+            renderer.begin();
+                root.renderAll(renderer);
+            renderer.end();
 
-        window.swap();
+            window.swap();
+        }
+
+        dirtyElements = 0;
     }
 }
