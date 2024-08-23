@@ -7,6 +7,7 @@ import inmath;
 public import soba.ssk.surfaces.image;
 public import soba.ssk.surfaces.canvas;
 public import soba.ssk.surfaces.gpu;
+import std.file;
 
 /**
     A rendering surface
@@ -239,7 +240,10 @@ public:
         renderer.setScissor(this.getBounds());
 
         preRender();
-            render(renderer);
+            if (dirty) {
+                render(renderer);
+                dirty = false;
+            }
 
             foreach(child; children) {
                 child.renderAll(renderer);
@@ -253,6 +257,11 @@ public:
     final
     void markDirty() {
         dirty = true;
+
+        // Propagate down to children.
+        foreach(ref child; children) {
+            child.markDirty();
+        }
     }
 
     /**
