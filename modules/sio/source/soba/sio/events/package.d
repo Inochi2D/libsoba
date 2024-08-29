@@ -35,8 +35,8 @@ private:
 
     map!(SioWindowID, weak_vector!SioIEventHandler) handlers;
 
-    weak_vector!SioIAnimationHandler animations;
-    weak_vector!SioIAnimationHandler animationBackBuffer;
+    weak_vector!_ImplSioAnimation animations;
+    weak_vector!_ImplSioAnimation animationBackBuffer;
 
     // TODO: Add a type to numem for a fixed size buffer.
     weak_vector!SioEvent submittedEvents;
@@ -236,7 +236,8 @@ private:
         // so this *should* be efficient enough.
         animationBackBuffer.resize(0);
         foreach(i, animation; animations) {
-            if (!animation.runFrame(currTime, deltaTime)) {
+            animation.time += deltaTime;
+            if (!animation.handler.runFrame(animation.time, deltaTime)) {
                 animationBackBuffer ~= animation;
             }
         }
@@ -421,7 +422,7 @@ public:
     */
     final
     void addAnimation(SioIAnimationHandler handler) {
-        animations ~= handler;
+        animations ~= _ImplSioAnimation(0, handler);
     }
 
     /**
@@ -439,5 +440,12 @@ public:
     final
     bool hasHandlers() {
         return handlers.length > 0;
+    }
+}
+
+private {
+    struct _ImplSioAnimation {
+        float time;
+        SioIAnimationHandler handler;
     }
 }
