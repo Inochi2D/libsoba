@@ -19,7 +19,7 @@ interface SioIEventHandler {
     /**
         Tell the event handler to process the specified event.
     */
-    void processEvent(SioEvent event);
+    void processEvent(ref SioEvent event);
 }
 
 /**

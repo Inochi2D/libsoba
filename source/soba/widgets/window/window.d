@@ -130,7 +130,7 @@ public:
         Called by the soba event handler.
     */
     final
-    void processEvent(SioEvent event) {
+    void processEvent(ref SioEvent event) {
         this.onEvent(event);
     }
 

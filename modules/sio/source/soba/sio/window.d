@@ -579,7 +579,7 @@ public:
         Pushes an event to the window
     */
     final
-    void processEvent(SioEvent event) {
+    void processEvent(ref SioEvent event) {
         
         if (this.evOnWindowEvent) {
             this.evOnWindowEvent(this, event);
